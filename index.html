@@ -203,6 +203,11 @@ select:focus{outline:none;border-color:var(--green3)}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--green);color:#fff;padding:13px 22px;border-radius:11px;font-size:13.5px;font-weight:700;z-index:600;box-shadow:0 12px 30px -8px rgba(0,0,0,.4);opacity:0;transition:.3s;pointer-events:none}
 .asp-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 24px;box-shadow:0 10px 30px -16px rgba(40,58,140,.3)}
 .asp-stats{grid-template-columns:repeat(3,1fr)!important}
+.instr-box{background:linear-gradient(135deg,var(--headgrad1),var(--headgrad2));color:#fff;border-radius:13px;padding:15px 18px;margin-bottom:16px;border-left:4px solid var(--gold)}
+.instr-title{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--gold-soft);font-weight:800;margin-bottom:9px}
+.instr-list{display:flex;flex-wrap:wrap;gap:8px}
+.instr-pill{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);padding:6px 12px;border-radius:20px;font-size:12.5px;font-weight:600}
+.instr-note{font-size:10.5px;color:rgba(255,255,255,.6);margin-top:9px;font-style:italic}
 .asp-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:18px;padding-bottom:16px;border-bottom:2px solid var(--gold)}
 .asp-name{font-size:20px;font-weight:900;color:var(--ink)}
 .asp-meta{font-size:12.5px;color:var(--muted);font-weight:600;margin-top:4px;letter-spacing:.5px}
@@ -305,6 +310,7 @@ footer{text-align:center;padding:22px;font-size:11px;color:var(--muted);letter-s
   <button class="btn btn-gold" onclick="exportExcel()">⬇ Excel</button>
 </div>
 <div class="wrap">
+  <div id="instructoresPanel"></div>
   <div class="count" id="count"></div>
   <div class="grid" id="grid"></div>
 </div>
@@ -354,7 +360,7 @@ footer{text-align:center;padding:22px;font-size:11px;color:var(--muted);letter-s
 const USERS_DEFAULT = [
   {user:"mely",   pass:"mely2026",   nombre:"Mely"},
   {user:"eliana", pass:"eliana2026", nombre:"Eliana"},
-  {user:"admin3", pass:"admin2026",  nombre:"Administrador 3"}
+  {user:"sergi",  pass:"sergi2026",  nombre:"Sergi"}
 ];
 const SESSION_KEY="rendv3_session", DATA_KEY="rendv3_data", PWD_KEY="rendv3_pwd", THEME_KEY="rendv3_theme", LOGO_KEY="rendv3_logo";
 
@@ -425,6 +431,13 @@ const CON_FINAL=["LEGISLACIÓN","FORMACIÓN Y ÉTICA POLICIAL","PROCEDIMIENTOS Y
 const ACAD=["LEGISLACIÓN","FORMACIÓN Y ÉTICA POLICIAL","ALFABETIZACIÓN Y ATEN. AL PÚBLICO","INV. CRIMINAL","DDHH","DCHO. GRAL.","TRÁNSITO Y SEGURIDAD VIAL","DERECHO CONTRAVENCIONAL","PRIMEROS AUXILIOS"];
 const OPER=["PROCEDIMIENTOS Y PRÁCT. POLICIALES","ARMA Y TIRO","BRP","ED. FISICA","DEFENSA POLICIAL","ORDEN CERRADO"];
 const TALLERES=["INTELIGENCIA EMOCIONAL","ANTINARCÓTICOS","CULTURA DIGITAL E IMAGEN INSTITUCIONAL"];
+const INSTRUCTORES={
+  "1":["Oficial Inspector Calderón Nahuel","Sargento 1° Oses Noelia"],
+  "2":["Oficial Inspector Euliarte Daniela","Sargento 1° Ramírez Juan"],
+  "3":["Oficial Inspector Yáñez Lucas","Sargento López Mariela"],
+  "4":["Oficial Subinspector Romero Yoseli","Oficial Subinspector Quevedo Pablo","Sargento Sanhueza Martín"],
+  "5":["Oficial Inspector Castillo Micaela","Cabo 1° Vázquez Mauricio"]
+};
 const ALLMAT=[...ACAD,...OPER,"CONDUCTA"];
 const SHORT={"LEGISLACIÓN":"Legisl.","FORMACIÓN Y ÉTICA POLICIAL":"Form.Ética","ALFABETIZACIÓN Y ATEN. AL PÚBLICO":"Alfab.","INV. CRIMINAL":"Inv.Crim.","DDHH":"DDHH","DCHO. GRAL.":"Dcho.Gral","TRÁNSITO Y SEGURIDAD VIAL":"Tránsito","DERECHO CONTRAVENCIONAL":"Contrav.","PRIMEROS AUXILIOS":"1ros Aux.","PROCEDIMIENTOS Y PRÁCT. POLICIALES":"Proced.","ARMA Y TIRO":"Arma/Tiro","BRP":"BRP","ED. FISICA":"Ed.Física","DEFENSA POLICIAL":"Def.Pol.","ORDEN CERRADO":"Orden C.","CONDUCTA":"Conducta"};
 const UMBRAL_CRIT=6, UMBRAL_WARN=7;
@@ -573,8 +586,20 @@ function currentList(){
   else if(state.sort==="nombre")list.sort((p,q)=>p.a.nombre.localeCompare(q.a.nombre));
   return list;
 }
+function renderInstructores(){
+  const panel=document.getElementById("instructoresPanel"); if(!panel)return;
+  const sec=state.sec;
+  if(!sec || !INSTRUCTORES[sec]){ panel.innerHTML=""; return; }
+  const lista=INSTRUCTORES[sec].map(n=>`<span class="instr-pill">👮 ${n}</span>`).join("");
+  panel.innerHTML=`<div class="instr-box">
+    <div class="instr-title">Instructores a cargo · Sección ${sec}</div>
+    <div class="instr-list">${lista}</div>
+    <div class="instr-note">La conducta es evaluada exclusivamente por los instructores.</div>
+  </div>`;
+}
 function render(){
   const grid=document.getElementById("grid"); const list=currentList();
+  renderInstructores();
   document.getElementById("count").innerHTML=`Mostrando <b>${list.length}</b> de ${DATA.length} aspirantes`;
   if(!list.length){grid.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="big">🔍</div>Sin resultados con estos filtros</div>`;return;}
   grid.innerHTML=list.map(({a,an})=>{
