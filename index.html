@@ -773,7 +773,7 @@ function num(v){ if(typeof v==="number")return v; if(typeof v==="string"){const 
 function promCursada(mat){ const a=num(mat.n1),b=num(mat.n2); if(a!==null&&b!==null)return (a+b)/2; if(a!==null)return a; if(b!==null)return b; return null; }
 function promFinal(matName,mat){
   const pc=promCursada(mat);
-  if(CON_FINAL.includes(matName)){ const f=num(mat.final); if(pc!==null&&f!==null)return (pc+f)/2; if(f!==null)return f; return pc; }
+  if(CON_FINAL.includes(matName)){ const f1=num(mat.final),f2=num(mat.final2); let fp=null; if(f1!==null&&f2!==null)fp=(f1+f2)/2; else if(f1!==null)fp=f1; else if(f2!==null)fp=f2; if(pc!==null&&fp!==null)return (pc+fp)/2; if(fp!==null)return fp; return pc; }
   return pc;
 }
 function promBloque(obj,keys){ let s=0,c=0; for(const m of keys){const pf=promFinal(m,obj[m]||{}); if(typeof pf==="number"){s+=pf;c++;}} return c?s/c:null; }
@@ -880,18 +880,20 @@ function tallEstadoPill(v){
 function openView(id){
   const a=DATA.find(x=>x.id===id); if(!a)return; const an=analizar(a);
   const tabFor=(bk,keys)=>`<table class="ntab"><thead><tr>
-      <th class="mat">Materia</th><th>1ª Nota</th><th>2ª Nota</th><th>Prom. Cursada</th><th class="h-hide">Final</th><th>Prom. Final</th></tr></thead><tbody>`+
+      <th class="mat">Materia</th><th>1ª Nota</th><th>2ª Nota</th><th>Prom. Cursada</th><th class="h-hide">Examen Final</th><th class="h-hide">2da Instancia</th><th>Prom. Final</th></tr></thead><tbody>`+
       keys.map(m=>{ const r=an.rows.find(x=>x.block===bk&&x.m===m); const mat=r.mat; const hasFinal=CON_FINAL.includes(m);
         const n1disp=(typeof mat.n1==="string")?`<span style="color:${mat.n1.toUpperCase().includes("DESAP")?"var(--crit)":"var(--ok)"};font-weight:700;font-size:11px">${mat.n1}</span>`:fmt1(mat.n1);
+        const n2disp=(typeof mat.n2==="string")?`<span style="color:${mat.n2.toUpperCase().includes("DESAP")?"var(--crit)":"var(--ok)"};font-weight:700;font-size:11px">${mat.n2}</span>`:fmt1(mat.n2);
         return `<tr class="${r.estado}"><td class="mat">${m}${hasFinal?' <span style="color:var(--gold);font-size:9px;font-weight:800">●FINAL</span>':''}</td>
-          <td><span class="cell">${n1disp}</span></td><td><span class="cell">${fmt1(mat.n2)}</span></td>
+          <td><span class="cell">${n1disp}</span></td><td><span class="cell">${n2disp}</span></td>
           <td class="prom"><span class="cell">${fmt1(r.pc)}</span></td>
           <td class="h-hide"><span class="cell">${hasFinal?fmt1(mat.final):'<span class="dash">—</span>'}</span></td>
+          <td class="h-hide"><span class="cell">${hasFinal?fmt1(mat.final2):'<span class="dash">—</span>'}</span></td>
           <td class="prom"><span class="cell">${fmt1(r.pf)}</span></td></tr>`; }).join("")+`</tbody></table>`;
   const condR=an.rows.find(x=>x.block==="conducta");
   const condTab=`<table class="ntab"><thead><tr><th class="mat">Conducta</th><th>1ª Nota</th><th>2ª Nota</th><th>Promedio</th></tr></thead><tbody>
     <tr class="${condR.estado}"><td class="mat">CONDUCTA</td><td><span class="cell">${fmt1(condR.mat.n1)}</span></td>
-    <td><span class="cell">${fmt1(condR.mat.n2)}</span></td><td class="prom"><span class="cell">${fmt1(condR.pf)}</span></td></tr></tbody></table>`;
+    <td><span class="cell">${(typeof condR.mat.n2==="string")?`<span style="color:${condR.mat.n2.toUpperCase().includes("DESAP")?"var(--crit)":"var(--ok)"};font-weight:700;font-size:11px">${condR.mat.n2}</span>`:fmt1(condR.mat.n2)}</span></td><td class="prom"><span class="cell">${fmt1(condR.pf)}</span></td></tr></tbody></table>`;
   const tallHtml=TALLERES.map(t=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 2px"><span style="font-size:13px;font-weight:600">${t}</span>${tallEstadoPill((a.talleres||{})[t])}</div>`).join("");
   const obs=(a.obs||"").trim();
   document.getElementById("modal").className="modal";
@@ -956,18 +958,20 @@ function renderAspiranteView(dni){
   if(!a){ cont.innerHTML=`<div class="wrap"><div class="empty"><div class="big">⚠</div>No se encontraron tus datos. Avisá a la Secretaría Académica.</div></div>`; return; }
   const an=analizar(a);
   const tabFor=(bk,keys)=>`<table class="ntab"><thead><tr>
-      <th class="mat">Materia</th><th>1ª Nota</th><th>2ª Nota</th><th>Prom. Cursada</th><th class="h-hide">Final</th><th>Prom. Final</th></tr></thead><tbody>`+
+      <th class="mat">Materia</th><th>1ª Nota</th><th>2ª Nota</th><th>Prom. Cursada</th><th class="h-hide">Examen Final</th><th class="h-hide">2da Instancia</th><th>Prom. Final</th></tr></thead><tbody>`+
       keys.map(m=>{ const r=an.rows.find(x=>x.block===bk&&x.m===m); const mat=r.mat; const hasFinal=CON_FINAL.includes(m);
         const n1disp=(typeof mat.n1==="string")?`<span style="color:${mat.n1.toUpperCase().includes("DESAP")?"var(--crit)":"var(--ok)"};font-weight:700;font-size:11px">${mat.n1}</span>`:fmt1(mat.n1);
+        const n2disp=(typeof mat.n2==="string")?`<span style="color:${mat.n2.toUpperCase().includes("DESAP")?"var(--crit)":"var(--ok)"};font-weight:700;font-size:11px">${mat.n2}</span>`:fmt1(mat.n2);
         return `<tr class="${r.estado}"><td class="mat">${m}${hasFinal?' <span style="color:var(--gold);font-size:9px;font-weight:800">●FINAL</span>':''}</td>
-          <td><span class="cell">${n1disp}</span></td><td><span class="cell">${fmt1(mat.n2)}</span></td>
+          <td><span class="cell">${n1disp}</span></td><td><span class="cell">${n2disp}</span></td>
           <td class="prom"><span class="cell">${fmt1(r.pc)}</span></td>
           <td class="h-hide"><span class="cell">${hasFinal?fmt1(mat.final):'<span class="dash">—</span>'}</span></td>
+          <td class="h-hide"><span class="cell">${hasFinal?fmt1(mat.final2):'<span class="dash">—</span>'}</span></td>
           <td class="prom"><span class="cell">${fmt1(r.pf)}</span></td></tr>`; }).join("")+`</tbody></table>`;
   const condR=an.rows.find(x=>x.block==="conducta");
   const condTab=`<table class="ntab"><thead><tr><th class="mat">Conducta</th><th>1ª Nota</th><th>2ª Nota</th><th>Promedio</th></tr></thead><tbody>
     <tr class="${condR.estado}"><td class="mat">CONDUCTA</td><td><span class="cell">${fmt1(condR.mat.n1)}</span></td>
-    <td><span class="cell">${fmt1(condR.mat.n2)}</span></td><td class="prom"><span class="cell">${fmt1(condR.pf)}</span></td></tr></tbody></table>`;
+    <td><span class="cell">${(typeof condR.mat.n2==="string")?`<span style="color:${condR.mat.n2.toUpperCase().includes("DESAP")?"var(--crit)":"var(--ok)"};font-weight:700;font-size:11px">${condR.mat.n2}</span>`:fmt1(condR.mat.n2)}</span></td><td class="prom"><span class="cell">${fmt1(condR.pf)}</span></td></tr></tbody></table>`;
   const tallHtml=TALLERES.map(t=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 2px"><span style="font-size:13px;font-weight:600">${t}</span>${tallEstadoPill((a.talleres||{})[t])}</div>`).join("");
   cont.innerHTML=`
   <div class="wrap" style="max-width:820px">
@@ -994,7 +998,7 @@ function renderAspiranteView(dni){
 
 /* ===================== EDITAR / AGREGAR ===================== */
 function blankAspirante(){
-  const mk=(keys)=>{const o={};keys.forEach(m=>o[m]=CON_FINAL.includes(m)?{n1:null,n2:null,final:null}:{n1:null,n2:null});return o;};
+  const mk=(keys)=>{const o={};keys.forEach(m=>o[m]=CON_FINAL.includes(m)?{n1:null,n2:null,final:null,final2:null}:{n1:null,n2:null});return o;};
   const tall={}; TALLERES.forEach(t=>tall[t]=null);
   return {id:"new_"+Date.now(),seccion:"1",nombre:"",dni:"",academicas:mk(ACAD),operacionales:mk(OPER),conducta:{n1:null,n2:null},talleres:tall,obs:""};
 }
@@ -1006,7 +1010,8 @@ function matBlockHTML(obj,keys){
       <div class="ein">
         <div><label>1ª Nota</label><input type="text" inputmode="decimal" class="e-n1" value="${n1val}"></div>
         <div><label>2ª Nota</label><input type="text" inputmode="decimal" class="e-n2" value="${mat.n2??""}"></div>
-        ${hasFinal?`<div><label>Final</label><input type="text" inputmode="decimal" class="e-final" value="${mat.final??""}"></div>`:``}
+        ${hasFinal?`<div><label>Examen Final</label><input type="text" inputmode="decimal" class="e-final" value="${mat.final??""}"></div>`:``}
+        ${hasFinal?`<div><label>2da Instancia</label><input type="text" inputmode="decimal" class="e-final2" value="${mat.final2??""}"></div>`:``}
         <div class="prom-live">–</div>
       </div></div>`; }).join("");
 }
@@ -1053,9 +1058,10 @@ function updateLive(el){
   const n1=parseFloat((el.querySelector(".e-n1").value||"").replace(",","."));
   const n2=parseFloat((el.querySelector(".e-n2").value||"").replace(",","."));
   const fEl=el.querySelector(".e-final"); const f=fEl?parseFloat((fEl.value||"").replace(",",".")):NaN;
+  const f2El=el.querySelector(".e-final2"); const f2=f2El?parseFloat((f2El.value||"").replace(",",".")):NaN;
   const a=isNaN(n1)?null:n1, b=isNaN(n2)?null:n2;
   let pc=(a!==null&&b!==null)?(a+b)/2:(a!==null?a:(b!==null?b:null)); let pf=pc;
-  if(isFinal&&!isNaN(f)){ pf=(pc!==null)?(pc+f)/2:f; }
+  if(isFinal){ const g1=isNaN(f)?null:f, g2=isNaN(f2)?null:f2; let fprom=null; if(g1!==null&&g2!==null)fprom=(g1+g2)/2; else if(g1!==null)fprom=g1; else if(g2!==null)fprom=g2; if(fprom!==null){ pf=(pc!==null)?(pc+fprom)/2:fprom; } }
   const out=el.querySelector(".prom-live");
   out.innerHTML=(pf!==null&&pf!==undefined)?((isFinal?'P.Final':'Prom')+'<br>'+(Math.round(pf*100)/100)):'–';
   out.style.color=(pf===null)?'var(--muted)':(pf<6?'var(--crit)':(pf<7?'var(--warn)':'var(--ok)'));
@@ -1067,7 +1073,7 @@ function readMatBlock(containerId){
     const raw1=el.querySelector(".e-n1").value.trim(); const n1n=parseFloat(raw1.replace(",","."));
     const raw2=el.querySelector(".e-n2").value.trim(); const n2n=parseFloat(raw2.replace(",","."));
     const o={ n1: raw1===""?null:(isNaN(n1n)?raw1:n1n), n2: raw2===""?null:(isNaN(n2n)?raw2:n2n) };
-    if(isFinal){ const fn=parseFloat((el.querySelector(".e-final").value||"").replace(",",".")); o.final=isNaN(fn)?null:fn; }
+    if(isFinal){ const fn=parseFloat((el.querySelector(".e-final").value||"").replace(",",".")); o.final=isNaN(fn)?null:fn; const fn2=parseFloat((el.querySelector(".e-final2").value||"").replace(",",".")); o.final2=isNaN(fn2)?null:fn2; }
     obj[m]=o;
   });
   return obj;
@@ -1321,7 +1327,7 @@ function exportExcel(){
   const list=currentList(); const rows=[];
   list.forEach(({a,an})=>{
     const base={"Sección":a.seccion,"Nombre":a.nombre,"DNI":a.dni,"Prom. Académico":an.pa!=null?Math.round(an.pa*100)/100:"","Prom. Operacional":an.po!=null?Math.round(an.po*100)/100:"","Conducta":an.pco!=null?Math.round(an.pco*100)/100:"","Mérito":an.prom!=null?Math.round(an.prom*100)/100:""};
-    const add=(bk,keys)=>keys.forEach(m=>{ const mat=a[bk][m]||{}; base[SHORT[m]+" 1ª"]=(typeof mat.n1==="number")?mat.n1:(mat.n1||""); base[SHORT[m]+" 2ª"]=mat.n2??""; if(CON_FINAL.includes(m))base[SHORT[m]+" Fin"]=mat.final??""; });
+    const add=(bk,keys)=>keys.forEach(m=>{ const mat=a[bk][m]||{}; base[SHORT[m]+" 1ª"]=(typeof mat.n1==="number")?mat.n1:(mat.n1||""); base[SHORT[m]+" 2ª"]=mat.n2??""; if(CON_FINAL.includes(m)){base[SHORT[m]+" Fin"]=mat.final??""; base[SHORT[m]+" 2daI"]=mat.final2??"";} });
     add("academicas",ACAD); add("operacionales",OPER);
     base["Conducta 1ª"]=a.conducta?.n1??""; base["Conducta 2ª"]=a.conducta?.n2??"";
     TALLERES.forEach(t=>base["Tall. "+t.split(" ")[0]]=(a.talleres||{})[t]||"");
@@ -1359,10 +1365,10 @@ function exportPDF(singleId){
     doc.setTextColor(122,20,32);doc.setFontSize(9);doc.setFont("helvetica","bold");
     doc.text(`Prom. Académico: ${fmt(an.pa)}    Prom. Operacional: ${fmt(an.po)}    Conducta: ${fmt(an.pco)}    Mérito: ${fmt(an.prom)}`,40,y); y+=8;
     const matRows=(bk,keys)=>keys.map(m=>{const mat=a[bk][m]||{};const r=an.rows.find(x=>x.block===bk&&x.m===m);
-      return [m,(typeof mat.n1==="number"?mat.n1:(mat.n1||"–")),mat.n2??"–",fmt1NoTag(r.pc),CON_FINAL.includes(m)?(mat.final??"–"):"—",fmt1NoTag(r.pf)];});
-    const sec=(title,body,startY)=>{ doc.autoTable({startY,head:[[title,"1ª","2ª","P.Curs.","Final","P.Final"]],body,theme:"grid",
-      headStyles:{fillColor:[158,27,44],fontSize:8},bodyStyles:{fontSize:8},columnStyles:{0:{cellWidth:190,halign:"left",fontStyle:"bold"}},styles:{halign:"center"},
-      didParseCell:d=>colorMerito(d,5)}); return doc.lastAutoTable.finalY; };
+      return [m,(typeof mat.n1==="number"?mat.n1:(mat.n1||"–")),mat.n2??"–",fmt1NoTag(r.pc),CON_FINAL.includes(m)?(mat.final??"–"):"—",CON_FINAL.includes(m)?(mat.final2??"–"):"—",fmt1NoTag(r.pf)];});
+    const sec=(title,body,startY)=>{ doc.autoTable({startY,head:[[title,"1ª","2ª","P.Curs.","Final","2da Inst.","P.Final"]],body,theme:"grid",
+      headStyles:{fillColor:[158,27,44],fontSize:8},bodyStyles:{fontSize:8},columnStyles:{0:{cellWidth:150,halign:"left",fontStyle:"bold"}},styles:{halign:"center"},
+      didParseCell:d=>colorMerito(d,6)}); return doc.lastAutoTable.finalY; };
     y=sec("MATERIAS ACADÉMICAS",matRows("academicas",ACAD),y+8);
     y=sec("MATERIAS OPERACIONALES",matRows("operacionales",OPER),y+12);
     const cm=a.conducta||{}; const cpf=promFinal("CONDUCTA",cm);
