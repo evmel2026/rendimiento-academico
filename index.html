@@ -1065,8 +1065,8 @@ function readMatBlock(containerId){
   document.querySelectorAll("#"+containerId+" .editmat").forEach(el=>{
     const m=el.dataset.mat; const isFinal=el.dataset.final==="1";
     const raw1=el.querySelector(".e-n1").value.trim(); const n1n=parseFloat(raw1.replace(",","."));
-    const n2n=parseFloat((el.querySelector(".e-n2").value||"").replace(",","."));
-    const o={ n1: raw1===""?null:(isNaN(n1n)?raw1:n1n), n2: isNaN(n2n)?null:n2n };
+    const raw2=el.querySelector(".e-n2").value.trim(); const n2n=parseFloat(raw2.replace(",","."));
+    const o={ n1: raw1===""?null:(isNaN(n1n)?raw1:n1n), n2: raw2===""?null:(isNaN(n2n)?raw2:n2n) };
     if(isFinal){ const fn=parseFloat((el.querySelector(".e-final").value||"").replace(",",".")); o.final=isNaN(fn)?null:fn; }
     obj[m]=o;
   });
