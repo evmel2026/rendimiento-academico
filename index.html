@@ -245,6 +245,10 @@ select:focus{outline:none;border-color:var(--green3)}
 .amo-badge{display:inline-flex;align-items:center;gap:3px;margin-left:7px;background:var(--crit);color:#fff;font-size:10px;font-weight:800;letter-spacing:.3px;padding:2px 7px;border-radius:999px;vertical-align:middle;white-space:nowrap;text-transform:uppercase}
 .card.sancionado{box-shadow:inset 0 0 0 1.5px var(--crit)}
 .amo-card-flag{display:inline-flex;align-items:center;gap:4px;background:var(--crit);color:#fff;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:999px;margin-top:7px;letter-spacing:.3px;text-transform:uppercase}
+.obs-card-flag{display:inline-flex;align-items:center;gap:4px;background:var(--gold);color:#3a2405;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:999px;margin-top:7px;letter-spacing:.3px;text-transform:uppercase}
+[data-theme="dark"] .obs-card-flag{color:#1a0a0c}
+.obs-card-note{margin-top:8px;background:var(--warn-bg);border-left:3px solid var(--gold);border-radius:0 8px 8px 0;padding:8px 10px;font-size:12px;line-height:1.45;color:var(--ink);white-space:pre-wrap}
+.obs-card-note .obs-lbl{display:flex;align-items:center;gap:4px;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--gold);margin-bottom:3px}
 .rank-na{color:var(--muted);font-size:11px;opacity:.7}
 .secgroup-ttl{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--green3);font-weight:800;margin:22px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--gold)}
 .secgroup-ttl:first-child{margin-top:0}
@@ -850,6 +854,8 @@ function render(){
     const flagsHtml=(an.crit+an.warn>0)?probl+extra:`<span class="allok">✓ Sin materias en riesgo</span>`;
     const amo=amoTotalDe(a.id); const sanc=amo.exp>0;
     const amoFlag=sanc?`<div class="amo-card-flag" title="${amo.cant} amonestación(es) en ${amo.exp} expediente(s)">⚠️ Sancionado · ${amo.cant||amo.exp} amonest.</div>`:"";
+    const tieneObs=(a.obs||"").trim();
+    const obsFlag=tieneObs?`<div class="obs-card-note"><div class="obs-lbl">📝 Observaciones</div>${escapeHtml(tieneObs)}</div>`:"";
     return `<div class="card ${sanc?'sancionado':''}" onclick="openView('${a.id}')">
       <div class="bar ${nv}"></div>
       <div class="top"><div><div class="name">${a.nombre}</div><div class="dni mono">DNI ${a.dni||"—"}</div></div><div class="secbadge">SEC ${a.seccion}</div></div>
@@ -858,7 +864,7 @@ function render(){
         <div class="box"><div class="v">${fmt(an.po)}</div><div class="k">Oper.</div></div>
         <div class="box"><div class="v">${fmt(an.pco)}</div><div class="k">Cond.</div></div>
       </div>
-      <div class="flags">${flagsHtml}</div>${amoFlag}</div>`;
+      <div class="flags">${flagsHtml}</div>${amoFlag}${obsFlag}</div>`;
   }).join("");
 }
 function renderKpis(){
