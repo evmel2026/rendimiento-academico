@@ -142,6 +142,28 @@ select:focus{outline:none;border-color:var(--green3)}
 .amo-form-grid .full{grid-column:1/-1}
 @media(max-width:560px){.amo-form-grid{grid-template-columns:1fr}}
 
+/* ===== OBSERVACIONES / 2DA INSTANCIA (por sección) ===== */
+.sec-block{margin-bottom:24px}
+.sec-block .sec-count{font-size:10.5px;color:var(--muted);font-weight:700;margin-left:9px;letter-spacing:.5px;text-transform:none}
+.obs-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px}
+.obs-item{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 15px;border-left:4px solid var(--gold)}
+.obs-item .oi-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:9px}
+.obs-item .oi-name{font-size:14px;font-weight:800;line-height:1.2}
+.obs-item .oi-dni{font-size:10.5px;color:var(--muted);margin-top:2px;letter-spacing:.4px}
+.obs-item .oi-text{font-size:12.5px;color:var(--ink);line-height:1.5;white-space:pre-wrap}
+.inst2-mats{display:flex;flex-wrap:wrap;gap:6px}
+.inst2-pill{font-size:11px;font-weight:700;padding:4px 9px;border-radius:6px;background:var(--warn-bg);color:var(--warn);display:inline-flex;align-items:center;gap:5px}
+.inst2-pill .n2{font-family:'JetBrains Mono',monospace;font-weight:800}
+.inst2-pill.pill-crit{background:var(--crit-bg);color:var(--crit)}
+.inst2-pill.pill-ok{background:var(--ok-bg);color:var(--ok)}
+.inst2-pill.pill-obs{background:rgba(207,154,30,.16);color:var(--gold)}
+[data-theme="dark"] .inst2-pill.pill-obs{color:var(--gold-soft)}
+.inst2-pill .tag2{font-size:9px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;opacity:.85}
+.sec-breakdown{display:flex;flex-wrap:wrap;gap:7px;margin:-2px 0 12px}
+.sec-bd-chip{font-size:11px;font-weight:700;padding:4px 11px;border-radius:20px;background:var(--warn-bg);color:var(--warn);display:inline-flex;align-items:center;gap:6px}
+.sec-bd-chip b{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:12.5px}
+.oi-obsnote{font-size:11.5px;color:var(--muted);line-height:1.45;margin-top:8px;font-style:italic;white-space:pre-wrap}
+
 .wrap{padding:20px 26px 70px;max-width:1320px;margin:0 auto}
 .count{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:14px}
 .count b{color:var(--ink)}
@@ -331,6 +353,8 @@ footer{text-align:center;padding:22px;font-size:11px;color:var(--muted);letter-s
   <button class="tab active" data-tab="rend" onclick="switchTab('rend')">📋 Rendimiento</button>
   <button class="tab" data-tab="merito" onclick="switchTab('merito')">🏅 Orden de Mérito</button>
   <button class="tab" data-tab="amo" onclick="switchTab('amo')">⚠️ Amonestaciones</button>
+  <button class="tab" data-tab="obs" onclick="switchTab('obs')">📝 Observaciones</button>
+  <button class="tab" data-tab="inst2" onclick="switchTab('inst2')">📄 2da Instancia</button>
 </div>
 
 <div id="view-rend">
@@ -426,6 +450,60 @@ footer{text-align:center;padding:22px;font-size:11px;color:var(--muted);letter-s
   <div class="amo-kpis" id="amoKpis"></div>
   <div class="count" id="countA"></div>
   <div class="amo-table-wrap"><table class="amo-table" id="amoTable"></table></div>
+</div>
+</div>
+
+<div id="view-obs" style="display:none">
+<div class="controls">
+  <div class="search">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input id="qobs" type="text" placeholder="Buscar por nombre, DNI u observación...">
+  </div>
+  <select id="secFilterObs">
+    <option value="">Todas las secciones</option>
+    <option value="1">Sección 1</option><option value="2">Sección 2</option>
+    <option value="3">Sección 3</option><option value="4">Sección 4</option>
+    <option value="5">Sección 5</option>
+  </select>
+  <div class="spacer" style="flex:1"></div>
+  <button class="btn btn-ghost" onclick="exportObsPDF()">⬇ PDF</button>
+  <button class="btn btn-gold" onclick="exportObsExcel()">⬇ Excel</button>
+</div>
+<div class="wrap">
+  <div class="amo-formula">
+    <span class="mf-title">📝 Observaciones por sección</span>
+    <span class="mf-note">Aspirantes con observaciones cargadas, agrupados por sección. Corresponde a quienes deben rendir un examen escrito previo al oral.</span>
+  </div>
+  <div class="amo-kpis" id="obsKpis"></div>
+  <div class="count" id="countObs"></div>
+  <div id="obsList"></div>
+</div>
+</div>
+
+<div id="view-inst2" style="display:none">
+<div class="controls">
+  <div class="search">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input id="qinst2" type="text" placeholder="Buscar por nombre o DNI...">
+  </div>
+  <select id="secFilterInst2">
+    <option value="">Todas las secciones</option>
+    <option value="1">Sección 1</option><option value="2">Sección 2</option>
+    <option value="3">Sección 3</option><option value="4">Sección 4</option>
+    <option value="5">Sección 5</option>
+  </select>
+  <div class="spacer" style="flex:1"></div>
+  <button class="btn btn-ghost" onclick="exportInst2PDF()">⬇ PDF</button>
+  <button class="btn btn-gold" onclick="exportInst2Excel()">⬇ Excel</button>
+</div>
+<div class="wrap">
+  <div class="amo-formula">
+    <span class="mf-title">📄 2da Instancia por sección</span>
+    <span class="mf-note">Aspirantes que van a segunda instancia, agrupados por sección con el detalle de cuántos son. Se detectan desde las observaciones (ej. "2da instancia de arma y tiro") y también desde la nota de 2da Instancia si estuviera cargada.</span>
+  </div>
+  <div class="amo-kpis" id="inst2Kpis"></div>
+  <div class="count" id="countInst2"></div>
+  <div id="inst2List"></div>
 </div>
 </div>
 
@@ -631,7 +709,7 @@ function cloudSubscribe(){
             DATA = ordenarAspirantes(DATA);
           }
           try{ localStorage.setItem(DATA_KEY, JSON.stringify(DATA)); }catch(e){}
-          renderKpis(); render(); refreshMeritoIfOpen();
+          renderKpis(); render(); refreshMeritoIfOpen(); refreshObsIfOpen(); refreshInst2IfOpen();
         } else if(id.indexOf(AMO_PREFIX)===0){
           if(payload.eventType==="DELETE"){
             AMO = AMO.filter(r=>AMO_PREFIX+r.id!==id);
@@ -716,7 +794,7 @@ function startApp(u){
   if(initSupabase()){
     setSyncBadge("sync");
     cloudLoad().then(ok=>{
-      if(ok){ renderKpis(); render(); refreshMeritoIfOpen(); cloudSubscribe(); setSyncBadge("ok"); }
+      if(ok){ renderKpis(); render(); refreshMeritoIfOpen(); refreshObsIfOpen(); refreshInst2IfOpen(); cloudSubscribe(); setSyncBadge("ok"); }
       else { setSyncBadge("off"); }
     });
   } else { setSyncBadge("off"); }
@@ -1106,13 +1184,13 @@ function saveEdit(id,isNew){
     aspGuardado=a;
     toast("Cambios guardados ✓");
   }
-  saveData(); cloudPushAspirante(aspGuardado); renderKpis(); render(); refreshMeritoIfOpen(); closeModal();
+  saveData(); cloudPushAspirante(aspGuardado); renderKpis(); render(); refreshMeritoIfOpen(); refreshObsIfOpen(); refreshInst2IfOpen(); closeModal();
 }
 function newAspirante(){ openEdit("__new__"); }
 function delAspirante(id){
   const a=DATA.find(x=>x.id===id); if(!a)return;
   if(!confirm(`¿Eliminar a ${a.nombre}? Esta acción no se puede deshacer.`))return;
-  DATA=DATA.filter(x=>x.id!==id); saveData(); cloudDeleteAspirante(id); renderKpis(); render(); refreshMeritoIfOpen(); closeModal(); toast("Aspirante eliminado");
+  DATA=DATA.filter(x=>x.id!==id); saveData(); cloudDeleteAspirante(id); renderKpis(); render(); refreshMeritoIfOpen(); refreshObsIfOpen(); refreshInst2IfOpen(); closeModal(); toast("Aspirante eliminado");
 }
 
 /* ===================== MODAL HELPERS ===================== */
@@ -1172,11 +1250,198 @@ function switchTab(t){
   document.getElementById("view-rend").style.display=t==="rend"?"":"none";
   document.getElementById("view-merito").style.display=t==="merito"?"":"none";
   document.getElementById("view-amo").style.display=t==="amo"?"":"none";
+  document.getElementById("view-obs").style.display=t==="obs"?"":"none";
+  document.getElementById("view-inst2").style.display=t==="inst2"?"":"none";
   if(t==="merito")renderMerito();
   if(t==="amo")renderAmo();
+  if(t==="obs")renderObs();
+  if(t==="inst2")renderInst2();
 }
 function refreshMeritoIfOpen(){ if(document.getElementById("view-merito").style.display!=="none")renderMerito(); }
 function refreshAmoIfOpen(){ const v=document.getElementById("view-amo"); if(v&&v.style.display!=="none")renderAmo(); }
+function refreshObsIfOpen(){ const v=document.getElementById("view-obs"); if(v&&v.style.display!=="none")renderObs(); }
+function refreshInst2IfOpen(){ const v=document.getElementById("view-inst2"); if(v&&v.style.display!=="none")renderInst2(); }
+
+/* ===================== OBSERVACIONES (por sección) ===================== */
+let obsState={q:"",sec:""};
+function aspConObs(){
+  return DATA.filter(a=>(a.obs||"").trim()!=="").map(a=>({a,obs:(a.obs||"").trim()}));
+}
+function obsFiltradas(){
+  let list=aspConObs();
+  const q=obsState.q.toLowerCase().trim();
+  if(q)list=list.filter(x=>(x.a.nombre||"").toLowerCase().includes(q)||String(x.a.dni||"").includes(q)||x.obs.toLowerCase().includes(q));
+  if(obsState.sec)list=list.filter(x=>String(x.a.seccion)===obsState.sec);
+  return list;
+}
+function renderObs(){
+  const list=obsFiltradas();
+  const total=list.length;
+  const secSet=new Set(list.map(x=>String(x.a.seccion)));
+  document.getElementById("obsKpis").innerHTML=`
+    <div class="amo-kpi"><div class="n">${total}</div><div class="l">Aspirantes con observación</div></div>
+    <div class="amo-kpi"><div class="n">${secSet.size}</div><div class="l">Secciones involucradas</div></div>`;
+  document.getElementById("countObs").innerHTML=`Mostrando <b>${total}</b> ${total===1?"aspirante":"aspirantes"}`;
+  const cont=document.getElementById("obsList");
+  if(!total){ cont.innerHTML=`<div class="amo-empty"><div class="big">📝</div>No hay aspirantes con observaciones cargadas${obsState.q||obsState.sec?" con ese filtro":""}.</div>`; return; }
+  const secs=[...secSet].sort();
+  cont.innerHTML=secs.map(s=>{
+    const items=list.filter(x=>String(x.a.seccion)===s).sort((p,q2)=>p.a.nombre.localeCompare(q2.a.nombre));
+    const cards=items.map(x=>`<div class="obs-item">
+      <div class="oi-top"><div><div class="oi-name">${escapeHtml(x.a.nombre)}</div><div class="oi-dni mono">DNI ${x.a.dni||"—"}</div></div>
+      <span class="secbadge">S${s}</span></div>
+      <div class="oi-text">${escapeHtml(x.obs)}</div></div>`).join("");
+    return `<div class="sec-block"><div class="secgroup-ttl">Sección ${s}<span class="sec-count">${items.length} aspirante(s)</span></div><div class="obs-list">${cards}</div></div>`;
+  }).join("");
+}
+function exportObsExcel(){
+  const list=obsFiltradas();
+  if(!list.length){ toast("No hay observaciones para exportar"); return; }
+  const rows=list.slice().sort((p,q2)=>String(p.a.seccion).localeCompare(String(q2.a.seccion))||p.a.nombre.localeCompare(q2.a.nombre))
+    .map(x=>({"Sección":x.a.seccion,"Aspirante":x.a.nombre,"DNI":x.a.dni||"","Observación":x.obs}));
+  const ws=XLSX.utils.json_to_sheet(rows); const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"Observaciones");
+  XLSX.writeFile(wb,"observaciones_"+new Date().toISOString().slice(0,10)+".xlsx");
+  toast("Excel descargado ✓");
+}
+function exportObsPDF(){
+  const list=obsFiltradas();
+  if(!list.length){ toast("No hay observaciones para exportar"); return; }
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:"landscape",unit:"pt",format:"a4"}); const W=doc.internal.pageSize.getWidth();
+  pdfHeader(doc,W,"Observaciones · Aspirantes 2026",`${list.length} aspirante(s)${obsState.sec?" · Sección "+obsState.sec:" · Todas las secciones"}`);
+  const body=list.slice().sort((p,q2)=>String(p.a.seccion).localeCompare(String(q2.a.seccion))||p.a.nombre.localeCompare(q2.a.nombre))
+    .map(x=>[x.a.seccion,x.a.nombre,x.a.dni||"—",x.obs]);
+  doc.autoTable({startY:68,head:[["Sec","Aspirante","DNI","Observación"]],body,theme:"striped",
+    headStyles:{fillColor:[158,27,44],fontSize:8.5},bodyStyles:{fontSize:8.5},
+    columnStyles:{0:{halign:"center",cellWidth:32},1:{cellWidth:180,fontStyle:"bold"},2:{cellWidth:80},3:{cellWidth:460}}});
+  pdfWatermark(doc);doc.save("observaciones_"+new Date().toISOString().slice(0,10)+".pdf");
+  toast("PDF descargado ✓");
+}
+
+/* ===================== 2DA INSTANCIA (por sección) ===================== */
+/* Detecta la 2da instancia leyendo las OBSERVACIONES del aspirante (texto libre,
+   ej. "va a 2da instancia de arma y tiro") y, como fuente secundaria, el campo
+   numérico final2 si estuviera cargado. */
+let inst2State={q:"",sec:""};
+const GEN_INST="__gen__"; // marca genérica: dice "2da instancia" pero sin materia identificable
+// palabras clave por materia con examen final (normalizadas, sin acentos)
+const MAT_KEYWORDS_INST2=[
+  ["ARMA Y TIRO", ["arma","tiro"]],
+  ["BRP", ["brp"]],
+  ["LEGISLACIÓN", ["legisl"]],
+  ["FORMACIÓN Y ÉTICA POLICIAL", ["formacion y etica","form. etica","form etica","etica policial"]],
+  ["PROCEDIMIENTOS Y PRÁCT. POLICIALES", ["procedimiento","proced.","practicas policiales","practica policial"]]
+];
+function inst2Norm(s){ return (s||"").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,""); }
+function obsMencionaInstancia(obs){
+  const t=inst2Norm(obs);
+  if(!t.includes("instancia")) return false;
+  // si menciona explícitamente sólo "primera/1ra instancia", no la contamos
+  if(/(primera|1ra|1°|1º|1ª)\s*\.?\s*instancia/.test(t) && !/(segunda|2da|2°|2º|2ª|2\b)\s*\.?\s*instancia/.test(t)) return false;
+  return true;
+}
+function subjectsFromObs(obs){
+  const t=inst2Norm(obs); const found=[];
+  MAT_KEYWORDS_INST2.forEach(([mat,kws])=>{ if(kws.some(k=>t.includes(inst2Norm(k)))) found.push(mat); });
+  return found;
+}
+function matsSegundaInstancia(a){
+  const map=new Map(); // materia -> {m, final2, raw, origen}
+  // fuente 1: campo numérico final2
+  const scan=(bk,keys)=>keys.forEach(m=>{ if(!CON_FINAL.includes(m))return; const mat=(a[bk]||{})[m]||{}; const raw=mat.final2;
+    if(raw!==null&&raw!==undefined&&String(raw).trim()!==""){ map.set(m,{m,final2:num(raw),raw:String(raw).trim(),origen:"nota"}); } });
+  scan("academicas",ACAD); scan("operacionales",OPER);
+  // fuente 2: observaciones (texto libre)
+  if(obsMencionaInstancia(a.obs)){
+    const subs=subjectsFromObs(a.obs);
+    if(subs.length){ subs.forEach(m=>{ if(!map.has(m)) map.set(m,{m,final2:null,raw:null,origen:"obs"}); }); }
+    else if(map.size===0){ map.set(GEN_INST,{m:GEN_INST,final2:null,raw:null,origen:"obs"}); }
+  }
+  return [...map.values()];
+}
+function aspSegundaInstancia(){
+  return DATA.map(a=>({a,mats:matsSegundaInstancia(a)})).filter(x=>x.mats.length>0);
+}
+function inst2Filtradas(){
+  let list=aspSegundaInstancia();
+  const q=inst2State.q.toLowerCase().trim();
+  if(q)list=list.filter(x=>(x.a.nombre||"").toLowerCase().includes(q)||String(x.a.dni||"").includes(q));
+  if(inst2State.sec)list=list.filter(x=>String(x.a.seccion)===inst2State.sec);
+  return list;
+}
+function inst2MatLabel(m){ return m===GEN_INST?"2da instancia":(SHORT[m]||m); }
+function inst2PillClass(v){ if(v===null)return ""; return v<UMBRAL_CRIT?"pill-crit":(v<UMBRAL_WARN?"":"pill-ok"); }
+// cuenta de aspirantes por materia dentro de una lista (para el desglose por cantidad)
+function conteoPorMateria(items){
+  const cnt=new Map();
+  items.forEach(x=>{ const vistos=new Set(); x.mats.forEach(mm=>{ if(vistos.has(mm.m))return; vistos.add(mm.m); cnt.set(mm.m,(cnt.get(mm.m)||0)+1); }); });
+  return [...cnt.entries()].sort((a,b)=>b[1]-a[1]||inst2MatLabel(a[0]).localeCompare(inst2MatLabel(b[0])));
+}
+function renderInst2(){
+  const list=inst2Filtradas();
+  const total=list.length;
+  const secSet=new Set(list.map(x=>String(x.a.seccion)));
+  const globalCnt=conteoPorMateria(list);
+  const totalMat=globalCnt.reduce((s,[,c])=>s+c,0);
+  document.getElementById("inst2Kpis").innerHTML=`
+    <div class="amo-kpi"><div class="n">${total}</div><div class="l">Aspirantes a 2da instancia</div></div>
+    <div class="amo-kpi"><div class="n">${totalMat}</div><div class="l">Materias a rendir (total)</div></div>
+    <div class="amo-kpi"><div class="n">${secSet.size}</div><div class="l">Secciones involucradas</div></div>`;
+  document.getElementById("countInst2").innerHTML=`Mostrando <b>${total}</b> ${total===1?"aspirante":"aspirantes"}`+
+    (globalCnt.length?` · ${globalCnt.map(([m,c])=>`${inst2MatLabel(m)}: <b>${c}</b>`).join(" · ")}`:"");
+  const cont=document.getElementById("inst2List");
+  if(!total){ cont.innerHTML=`<div class="amo-empty"><div class="big">📄</div>No hay aspirantes en 2da instancia${inst2State.q||inst2State.sec?" con ese filtro":""}. Se detecta desde las observaciones (ej. "2da instancia de arma y tiro").</div>`; return; }
+  const secs=[...secSet].sort();
+  cont.innerHTML=secs.map(s=>{
+    const items=list.filter(x=>String(x.a.seccion)===s).sort((p,q2)=>p.a.nombre.localeCompare(q2.a.nombre));
+    const bd=conteoPorMateria(items);
+    const bdHtml=bd.map(([m,c])=>`<span class="sec-bd-chip">${inst2MatLabel(m)} <b>${c}</b></span>`).join("");
+    const cards=items.map(x=>{
+      const pills=x.mats.map(mm=>{
+        if(mm.origen==="nota"){ const val=(mm.final2!==null)?fmt1NoTag(mm.final2):escapeHtml(mm.raw||"");
+          return `<span class="inst2-pill ${inst2PillClass(mm.final2)}">${inst2MatLabel(mm.m)} <span class="n2">${val}</span></span>`; }
+        return `<span class="inst2-pill pill-obs">${inst2MatLabel(mm.m)} <span class="tag2">2da inst.</span></span>`;
+      }).join("");
+      const obsTxt=(x.a.obs||"").trim();
+      const obsNote=obsTxt?`<div class="oi-obsnote">📝 ${escapeHtml(obsTxt)}</div>`:"";
+      return `<div class="obs-item">
+        <div class="oi-top"><div><div class="oi-name">${escapeHtml(x.a.nombre)}</div><div class="oi-dni mono">DNI ${x.a.dni||"—"}</div></div>
+        <span class="secbadge">S${s}</span></div>
+        <div class="inst2-mats">${pills}</div>${obsNote}</div>`;
+    }).join("");
+    return `<div class="sec-block"><div class="secgroup-ttl">Sección ${s}<span class="sec-count">${items.length} aspirante(s)</span></div><div class="sec-breakdown">${bdHtml}</div><div class="obs-list">${cards}</div></div>`;
+  }).join("");
+}
+function inst2NotaExport(mm){ if(mm.origen==="obs")return "Según observación"; return (mm.final2!==null?mm.final2:(mm.raw||"")); }
+function exportInst2Excel(){
+  const list=inst2Filtradas();
+  if(!list.length){ toast("No hay aspirantes en 2da instancia para exportar"); return; }
+  const rows=[];
+  list.slice().sort((p,q2)=>String(p.a.seccion).localeCompare(String(q2.a.seccion))||p.a.nombre.localeCompare(q2.a.nombre))
+    .forEach(x=>x.mats.forEach(mm=>rows.push({"Sección":x.a.seccion,"Aspirante":x.a.nombre,"DNI":x.a.dni||"","Materia":inst2MatLabel(mm.m),"Origen":mm.origen==="obs"?"Observación":"Nota 2da Inst.","Nota / Detalle":inst2NotaExport(mm),"Observación":(x.a.obs||"").trim()})));
+  const ws=XLSX.utils.json_to_sheet(rows); const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"2da Instancia");
+  XLSX.writeFile(wb,"segunda_instancia_"+new Date().toISOString().slice(0,10)+".xlsx");
+  toast("Excel descargado ✓");
+}
+function exportInst2PDF(){
+  const list=inst2Filtradas();
+  if(!list.length){ toast("No hay aspirantes en 2da instancia para exportar"); return; }
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:"landscape",unit:"pt",format:"a4"}); const W=doc.internal.pageSize.getWidth();
+  const globalCnt=conteoPorMateria(list);
+  const resumen=globalCnt.map(([m,c])=>`${inst2MatLabel(m)}: ${c}`).join("  ·  ");
+  pdfHeader(doc,W,"2da Instancia · Aspirantes 2026",`${list.length} aspirante(s)${inst2State.sec?" · Sección "+inst2State.sec:" · Todas las secciones"}${resumen?"  ·  "+resumen:""}`);
+  const body=[];
+  list.slice().sort((p,q2)=>String(p.a.seccion).localeCompare(String(q2.a.seccion))||p.a.nombre.localeCompare(q2.a.nombre))
+    .forEach(x=>x.mats.forEach((mm,i)=>body.push([i===0?x.a.seccion:"",i===0?x.a.nombre:"",i===0?(x.a.dni||"—"):"",inst2MatLabel(mm.m),(mm.origen==="obs"?"s/ obs.":(mm.final2!==null?fmt1NoTag(mm.final2):(mm.raw||"")))])));
+  doc.autoTable({startY:68,head:[["Sec","Aspirante","DNI","Materia","Nota 2da Inst."]],body,theme:"striped",
+    headStyles:{fillColor:[158,27,44],fontSize:8.5},bodyStyles:{fontSize:8.5},
+    columnStyles:{0:{halign:"center",cellWidth:32},1:{cellWidth:190,fontStyle:"bold"},2:{cellWidth:80},3:{cellWidth:230},4:{halign:"center",cellWidth:90}}});
+  pdfWatermark(doc);doc.save("segunda_instancia_"+new Date().toISOString().slice(0,10)+".pdf");
+  toast("PDF descargado ✓");
+}
 
 /* ===================== AMONESTACIONES ===================== */
 let aState={q:"",sec:""};
@@ -1434,6 +1699,10 @@ document.getElementById("secFilterM").addEventListener("change",e=>{mState.sec=e
 document.getElementById("meritoScope").addEventListener("change",e=>{mState.scope=e.target.value;renderMerito();});
 document.getElementById("qa").addEventListener("input",e=>{aState.q=e.target.value;renderAmo();});
 document.getElementById("secFilterA").addEventListener("change",e=>{aState.sec=e.target.value;renderAmo();});
+document.getElementById("qobs").addEventListener("input",e=>{obsState.q=e.target.value;renderObs();});
+document.getElementById("secFilterObs").addEventListener("change",e=>{obsState.sec=e.target.value;renderObs();});
+document.getElementById("qinst2").addEventListener("input",e=>{inst2State.q=e.target.value;renderInst2();});
+document.getElementById("secFilterInst2").addEventListener("change",e=>{inst2State.sec=e.target.value;renderInst2();});
 
 /* ===================== AUTO-SESIÓN (al final, con todo definido) ===================== */
 (function(){ try{const s=JSON.parse(sessionStorage.getItem(SESSION_KEY)); if(s){ if(s.rol==="aspirante"&&s.dni){ startAspirante(s.dni); } else if(s.user){const u=USERS_DEFAULT.find(x=>x.user===s.user); if(u)startApp({rol:"admin",...u});} }}catch(e){} })();
