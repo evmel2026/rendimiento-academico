@@ -492,6 +492,9 @@ footer{text-align:center;padding:22px;font-size:11px;color:var(--muted);letter-s
     <option value="3">Sección 3</option><option value="4">Sección 4</option>
     <option value="5">Sección 5</option>
   </select>
+  <select id="matFilterInst2" title="Filtrar y exportar por materia">
+    <option value="">Todas las materias</option>
+  </select>
   <div class="spacer" style="flex:1"></div>
   <button class="btn btn-ghost" onclick="exportInst2PDF()">⬇ PDF</button>
   <button class="btn btn-gold" onclick="exportInst2Excel()">⬇ Excel</button>
@@ -1323,7 +1326,7 @@ function exportObsPDF(){
 /* Detecta la 2da instancia leyendo las OBSERVACIONES del aspirante (texto libre,
    ej. "va a 2da instancia de arma y tiro") y, como fuente secundaria, el campo
    numérico final2 si estuviera cargado. */
-let inst2State={q:"",sec:""};
+let inst2State={q:"",sec:"",mat:""};
 const GEN_INST="__gen__"; // marca genérica: dice "2da instancia" pero sin materia identificable
 // palabras clave por materia con examen final (normalizadas, sin acentos)
 const MAT_KEYWORDS_INST2=[
@@ -1368,7 +1371,30 @@ function inst2Filtradas(){
   const q=inst2State.q.toLowerCase().trim();
   if(q)list=list.filter(x=>(x.a.nombre||"").toLowerCase().includes(q)||String(x.a.dni||"").includes(q));
   if(inst2State.sec)list=list.filter(x=>String(x.a.seccion)===inst2State.sec);
+  if(inst2State.mat){
+    // sólo aspirantes con esa materia, y recorto mats a esa materia
+    list=list.map(x=>({a:x.a,mats:x.mats.filter(mm=>mm.m===inst2State.mat)})).filter(x=>x.mats.length>0);
+  }
   return list;
+}
+// materias presentes en 2da instancia (para poblar el selector), sin filtro de materia
+function inst2MateriasDisponibles(){
+  let list=aspSegundaInstancia();
+  const q=inst2State.q.toLowerCase().trim();
+  if(q)list=list.filter(x=>(x.a.nombre||"").toLowerCase().includes(q)||String(x.a.dni||"").includes(q));
+  if(inst2State.sec)list=list.filter(x=>String(x.a.seccion)===inst2State.sec);
+  return conteoPorMateria(list); // [[materia,cant],...]
+}
+function inst2FillMatSelector(){
+  const sel=document.getElementById("matFilterInst2"); if(!sel)return;
+  const disp=inst2MateriasDisponibles();
+  const prev=inst2State.mat;
+  let html=`<option value="">Todas las materias</option>`;
+  disp.forEach(([m,c])=>{ html+=`<option value="${m}">${inst2MatLabel(m)} (${c})</option>`; });
+  // si la materia elegida ya no está disponible, la agrego igual para no perder la selección visualmente
+  if(prev && !disp.some(([m])=>m===prev)) html+=`<option value="${prev}">${inst2MatLabel(prev)} (0)</option>`;
+  sel.innerHTML=html;
+  sel.value=prev;
 }
 function inst2MatLabel(m){ return m===GEN_INST?"2da instancia":(SHORT[m]||m); }
 function inst2PillClass(v){ if(v===null)return ""; return v<UMBRAL_CRIT?"pill-crit":(v<UMBRAL_WARN?"":"pill-ok"); }
@@ -1379,6 +1405,7 @@ function conteoPorMateria(items){
   return [...cnt.entries()].sort((a,b)=>b[1]-a[1]||inst2MatLabel(a[0]).localeCompare(inst2MatLabel(b[0])));
 }
 function renderInst2(){
+  inst2FillMatSelector();
   const list=inst2Filtradas();
   const total=list.length;
   const secSet=new Set(list.map(x=>String(x.a.seccion)));
@@ -1421,8 +1448,10 @@ function exportInst2Excel(){
   list.slice().sort((p,q2)=>String(p.a.seccion).localeCompare(String(q2.a.seccion))||p.a.nombre.localeCompare(q2.a.nombre))
     .forEach(x=>x.mats.forEach(mm=>rows.push({"Sección":x.a.seccion,"Aspirante":x.a.nombre,"DNI":x.a.dni||"","Materia":inst2MatLabel(mm.m),"Origen":mm.origen==="obs"?"Observación":"Nota 2da Inst.","Nota / Detalle":inst2NotaExport(mm),"Observación":(x.a.obs||"").trim()})));
   const ws=XLSX.utils.json_to_sheet(rows); const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,"2da Instancia");
-  XLSX.writeFile(wb,"segunda_instancia_"+new Date().toISOString().slice(0,10)+".xlsx");
+  const matSlug=inst2State.mat?"_"+inst2Norm(inst2MatLabel(inst2State.mat)).replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""):"";
+  const hoja=inst2State.mat?("2da Inst "+inst2MatLabel(inst2State.mat)).slice(0,31):"2da Instancia";
+  XLSX.utils.book_append_sheet(wb,ws,hoja);
+  XLSX.writeFile(wb,"segunda_instancia"+matSlug+"_"+new Date().toISOString().slice(0,10)+".xlsx");
   toast("Excel descargado ✓");
 }
 function exportInst2PDF(){
@@ -1432,14 +1461,16 @@ function exportInst2PDF(){
   const doc=new jsPDF({orientation:"landscape",unit:"pt",format:"a4"}); const W=doc.internal.pageSize.getWidth();
   const globalCnt=conteoPorMateria(list);
   const resumen=globalCnt.map(([m,c])=>`${inst2MatLabel(m)}: ${c}`).join("  ·  ");
-  pdfHeader(doc,W,"2da Instancia · Aspirantes 2026",`${list.length} aspirante(s)${inst2State.sec?" · Sección "+inst2State.sec:" · Todas las secciones"}${resumen?"  ·  "+resumen:""}`);
+  const tituloMat=inst2State.mat?" · "+inst2MatLabel(inst2State.mat):"";
+  pdfHeader(doc,W,"2da Instancia"+tituloMat+" · Aspirantes 2026",`${list.length} aspirante(s)${inst2State.sec?" · Sección "+inst2State.sec:" · Todas las secciones"}${inst2State.mat?" · Materia: "+inst2MatLabel(inst2State.mat):""}${resumen?"  ·  "+resumen:""}`);
   const body=[];
   list.slice().sort((p,q2)=>String(p.a.seccion).localeCompare(String(q2.a.seccion))||p.a.nombre.localeCompare(q2.a.nombre))
     .forEach(x=>x.mats.forEach((mm,i)=>body.push([i===0?x.a.seccion:"",i===0?x.a.nombre:"",i===0?(x.a.dni||"—"):"",inst2MatLabel(mm.m),(mm.origen==="obs"?"s/ obs.":(mm.final2!==null?fmt1NoTag(mm.final2):(mm.raw||"")))])));
   doc.autoTable({startY:68,head:[["Sec","Aspirante","DNI","Materia","Nota 2da Inst."]],body,theme:"striped",
     headStyles:{fillColor:[158,27,44],fontSize:8.5},bodyStyles:{fontSize:8.5},
     columnStyles:{0:{halign:"center",cellWidth:32},1:{cellWidth:190,fontStyle:"bold"},2:{cellWidth:80},3:{cellWidth:230},4:{halign:"center",cellWidth:90}}});
-  pdfWatermark(doc);doc.save("segunda_instancia_"+new Date().toISOString().slice(0,10)+".pdf");
+  const matSlug=inst2State.mat?"_"+inst2Norm(inst2MatLabel(inst2State.mat)).replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""):"";
+  pdfWatermark(doc);doc.save("segunda_instancia"+matSlug+"_"+new Date().toISOString().slice(0,10)+".pdf");
   toast("PDF descargado ✓");
 }
 
@@ -1702,7 +1733,8 @@ document.getElementById("secFilterA").addEventListener("change",e=>{aState.sec=e
 document.getElementById("qobs").addEventListener("input",e=>{obsState.q=e.target.value;renderObs();});
 document.getElementById("secFilterObs").addEventListener("change",e=>{obsState.sec=e.target.value;renderObs();});
 document.getElementById("qinst2").addEventListener("input",e=>{inst2State.q=e.target.value;renderInst2();});
-document.getElementById("secFilterInst2").addEventListener("change",e=>{inst2State.sec=e.target.value;renderInst2();});
+document.getElementById("secFilterInst2").addEventListener("change",e=>{inst2State.sec=e.target.value;inst2State.mat="";renderInst2();});
+document.getElementById("matFilterInst2").addEventListener("change",e=>{inst2State.mat=e.target.value;renderInst2();});
 
 /* ===================== AUTO-SESIÓN (al final, con todo definido) ===================== */
 (function(){ try{const s=JSON.parse(sessionStorage.getItem(SESSION_KEY)); if(s){ if(s.rol==="aspirante"&&s.dni){ startAspirante(s.dni); } else if(s.user){const u=USERS_DEFAULT.find(x=>x.user===s.user); if(u)startApp({rol:"admin",...u});} }}catch(e){} })();
