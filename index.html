@@ -159,6 +159,15 @@ select:focus{outline:none;border-color:var(--green3)}
 .inst2-pill.pill-obs{background:rgba(207,154,30,.16);color:var(--gold)}
 [data-theme="dark"] .inst2-pill.pill-obs{color:var(--gold-soft)}
 .inst2-pill .tag2{font-size:9px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;opacity:.85}
+.i2m-box{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px}
+.i2m-main{display:flex;align-items:center;gap:8px;font-size:13.5px;cursor:pointer}
+.i2m-main input{width:17px;height:17px}
+.i2m-chips{display:flex;flex-wrap:wrap;gap:6px}
+.i2m-chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:5px 9px;border:1px solid var(--line);border-radius:7px;cursor:pointer;background:var(--bg);color:var(--muted);user-select:none}
+.i2m-chip input{margin:0}
+.i2m-chip.on{background:rgba(207,154,30,.16);color:var(--gold);border-color:var(--gold)}
+.inst2-pill.pill-manual{background:rgba(158,27,44,.14);color:var(--lacre,#9e1b2c)}
+[data-theme="dark"] .inst2-pill.pill-manual{color:#e88}
 .sec-breakdown{display:flex;flex-wrap:wrap;gap:7px;margin:-2px 0 12px}
 .sec-bd-chip{font-size:11px;font-weight:700;padding:4px 11px;border-radius:20px;background:var(--warn-bg);color:var(--warn);display:inline-flex;align-items:center;gap:6px}
 .sec-bd-chip b{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:12.5px}
@@ -1102,6 +1111,29 @@ function matBlockHTML(obj,keys){
         <div class="prom-live">–</div>
       </div></div>`; }).join("");
 }
+function inst2ManualHTML(a){
+  // normaliza el valor guardado a un array de materias marcadas (o [] si es genérica true)
+  let man=a.inst2manual; let marcadas=[]; let genOn=false;
+  if(man===true){ genOn=true; }
+  else if(Array.isArray(man)){ marcadas=man.filter(m=>m!=="__gen__"); genOn=man.length>0; }
+  const activo=genOn||marcadas.length>0;
+  const todas=[...ACAD,...OPER];
+  const chips=todas.map(m=>{
+    const on=marcadas.includes(m);
+    return `<label class="i2m-chip ${on?'on':''}"><input type="checkbox" class="i2m-mat" value="${m}" ${on?'checked':''}> ${SHORT[m]||m}</label>`;
+  }).join("");
+  return `<div class="i2m-box" id="i2m-box">
+    <label class="i2m-main"><input type="checkbox" id="i2m-on" ${activo?'checked':''}> <b>Este aspirante va a 2da instancia</b></label>
+    <div class="i2m-note" style="font-size:11px;color:var(--muted);margin:4px 0 8px">Marcá las materias (opcional). Si no marcás ninguna, igual queda registrado como "2da instancia" genérica.</div>
+    <div class="i2m-chips" id="i2m-chips">${chips}</div>
+  </div>`;
+}
+function readInst2Manual(){
+  const on=document.getElementById("i2m-on");
+  if(!on||!on.checked) return false; // no va a 2da instancia
+  const mats=[...document.querySelectorAll(".i2m-mat:checked")].map(c=>c.value);
+  return mats.length?mats:true; // true = genérica; array = materias específicas
+}
 function openEdit(id){
   const isNew=id==="__new__";
   const a=isNew?blankAspirante():JSON.parse(JSON.stringify(DATA.find(x=>x.id===id)));
@@ -1132,6 +1164,8 @@ function openEdit(id){
       <div class="secttl">Talleres <span class="pp" style="font-size:10px;color:var(--muted)">Aprobado / Desaprobado</span></div>${tallHTML}
       <div class="secttl">Observaciones</div>
       <div class="efield"><textarea id="e-obs" placeholder="Notas u observaciones del aspirante...">${escapeHtml(a.obs||"")}</textarea></div>
+      <div class="secttl">2da Instancia <span class="pp" style="font-size:10px;color:var(--muted)">Marca manual — asegura que aparezca sí o sí</span></div>
+      ${inst2ManualHTML(a)}
     </div>
     <div class="mfoot">
       <button class="btn btn-ghost" onclick="${isNew?'closeModal()':`openView('${a.id}')`}">Cancelar</button>
@@ -1176,14 +1210,15 @@ function saveEdit(id,isNew){
   const talleres={};
   document.querySelectorAll(".edit-tall").forEach(el=>{ talleres[el.dataset.tall]=el.querySelector(".e-tall").value||null; });
   const obs=document.getElementById("e-obs").value;
+  const inst2manual=readInst2Manual();
   let aspGuardado;
   if(isNew){
-    aspGuardado={id:dni||("id_"+Date.now()),seccion:sec,nombre,dni,academicas,operacionales,conducta:condObj,talleres,obs};
+    aspGuardado={id:dni||("id_"+Date.now()),seccion:sec,nombre,dni,academicas,operacionales,conducta:condObj,talleres,obs,inst2manual};
     DATA.push(aspGuardado);
     toast("Aspirante agregado ✓");
   } else {
     const a=DATA.find(x=>x.id===id);
-    Object.assign(a,{nombre,dni,seccion:sec,academicas,operacionales,conducta:condObj,talleres,obs});
+    Object.assign(a,{nombre,dni,seccion:sec,academicas,operacionales,conducta:condObj,talleres,obs,inst2manual});
     aspGuardado=a;
     toast("Cambios guardados ✓");
   }
@@ -1328,21 +1363,43 @@ function exportObsPDF(){
    numérico final2 si estuviera cargado. */
 let inst2State={q:"",sec:"",mat:""};
 const GEN_INST="__gen__"; // marca genérica: dice "2da instancia" pero sin materia identificable
-// palabras clave por materia con examen final (normalizadas, sin acentos)
+// palabras clave por materia (normalizadas, sin acentos). Ahora cubre TODAS las materias,
+// no sólo las que tienen examen final, para no perder ninguna observación.
 const MAT_KEYWORDS_INST2=[
-  ["ARMA Y TIRO", ["arma","tiro"]],
+  ["ARMA Y TIRO", ["arma","tiro","arma y tiro"]],
   ["BRP", ["brp"]],
-  ["LEGISLACIÓN", ["legisl"]],
-  ["FORMACIÓN Y ÉTICA POLICIAL", ["formacion y etica","form. etica","form etica","etica policial"]],
-  ["PROCEDIMIENTOS Y PRÁCT. POLICIALES", ["procedimiento","proced.","practicas policiales","practica policial"]]
+  ["LEGISLACIÓN", ["legisl","legislacion"]],
+  ["FORMACIÓN Y ÉTICA POLICIAL", ["formacion y etica","form. etica","form etica","etica policial","formacion policial"]],
+  ["PROCEDIMIENTOS Y PRÁCT. POLICIALES", ["procedimiento","proced.","practicas policiales","practica policial","practicas pol"]],
+  ["ALFABETIZACIÓN Y ATEN. AL PÚBLICO", ["alfabetizacion","atencion al publico","aten. al publico","aten al publico"]],
+  ["INV. CRIMINAL", ["inv. criminal","investigacion criminal","inv criminal","criminalistica"]],
+  ["DDHH", ["ddhh","derechos humanos"]],
+  ["DCHO. GRAL.", ["dcho. gral","derecho general","dcho gral","derecho gral"]],
+  ["TRÁNSITO Y SEGURIDAD VIAL", ["transito","seguridad vial","transito y seguridad"]],
+  ["DERECHO CONTRAVENCIONAL", ["contravencional","derecho contravencional"]],
+  ["PRIMEROS AUXILIOS", ["primeros auxilios","1ros auxilios","primeros aux","1eros auxilios"]],
+  ["ED. FISICA", ["educacion fisica","ed. fisica","ed fisica","educacion fisica"]],
+  ["DEFENSA POLICIAL", ["defensa policial","defensa pol"]],
+  ["ORDEN CERRADO", ["orden cerrado"]]
 ];
 function inst2Norm(s){ return (s||"").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,""); }
 function obsMencionaInstancia(obs){
   const t=inst2Norm(obs);
-  if(!t.includes("instancia")) return false;
+  if(!t.trim()) return false;
   // si menciona explícitamente sólo "primera/1ra instancia", no la contamos
-  if(/(primera|1ra|1°|1º|1ª)\s*\.?\s*instancia/.test(t) && !/(segunda|2da|2°|2º|2ª|2\b)\s*\.?\s*instancia/.test(t)) return false;
-  return true;
+  if(/(primera|1ra|1°|1º|1ª)\s*\.?\s*(instancia|inst\.?)/.test(t) && !/(segunda|2da|2°|2º|2ª|2\b)\s*\.?\s*(instancia|inst\.?)/.test(t)) return false;
+  // formas de decir 2da instancia (con o sin la palabra completa "instancia")
+  const patrones=[
+    /instancia/,
+    /\b2da?\s*\.?\s*inst\b/,
+    /\bsegunda\s*\.?\s*inst\b/,
+    /recuperatorio/, /recupera(r|torio|)\b/,
+    /\brend(ir|i|e|en|a)\b/, /\bnuevamente\b/, /\bde\s+nuevo\b/,
+    /\ba\s+2da\b/, /\ba\s+segunda\b/,
+    /\bmesa\s+(de\s+)?examen\b/,
+    /\bva\s+a\s+examen\b/
+  ];
+  return patrones.some(re=>re.test(t));
 }
 function subjectsFromObs(obs){
   const t=inst2Norm(obs); const found=[];
@@ -1351,11 +1408,18 @@ function subjectsFromObs(obs){
 }
 function matsSegundaInstancia(a){
   const map=new Map(); // materia -> {m, final2, raw, origen}
-  // fuente 1: campo numérico final2
-  const scan=(bk,keys)=>keys.forEach(m=>{ if(!CON_FINAL.includes(m))return; const mat=(a[bk]||{})[m]||{}; const raw=mat.final2;
+  // fuente 1: campo numérico final2 (en cualquier materia que lo tenga cargado)
+  const scan=(bk,keys)=>keys.forEach(m=>{ const mat=(a[bk]||{})[m]||{}; const raw=mat.final2;
     if(raw!==null&&raw!==undefined&&String(raw).trim()!==""){ map.set(m,{m,final2:num(raw),raw:String(raw).trim(),origen:"nota"}); } });
   scan("academicas",ACAD); scan("operacionales",OPER);
-  // fuente 2: observaciones (texto libre)
+  // fuente 2: MARCA MANUAL (no depende del texto). a.inst2manual = true|false|array de materias
+  const man=a.inst2manual;
+  if(man===true){ if(map.size===0) map.set(GEN_INST,{m:GEN_INST,final2:null,raw:null,origen:"manual"}); }
+  else if(Array.isArray(man)){
+    man.forEach(m=>{ if(!map.has(m)){ const et=(m===GEN_INST||ACAD.includes(m)||OPER.includes(m))?m:GEN_INST; map.set(et,{m:et,final2:null,raw:null,origen:"manual"}); } });
+    if(!man.length && map.size===0) map.set(GEN_INST,{m:GEN_INST,final2:null,raw:null,origen:"manual"});
+  }
+  // fuente 3: observaciones (texto libre)
   if(obsMencionaInstancia(a.obs)){
     const subs=subjectsFromObs(a.obs);
     if(subs.length){ subs.forEach(m=>{ if(!map.has(m)) map.set(m,{m,final2:null,raw:null,origen:"obs"}); }); }
@@ -1418,7 +1482,7 @@ function renderInst2(){
   document.getElementById("countInst2").innerHTML=`Mostrando <b>${total}</b> ${total===1?"aspirante":"aspirantes"}`+
     (globalCnt.length?` · ${globalCnt.map(([m,c])=>`${inst2MatLabel(m)}: <b>${c}</b>`).join(" · ")}`:"");
   const cont=document.getElementById("inst2List");
-  if(!total){ cont.innerHTML=`<div class="amo-empty"><div class="big">📄</div>No hay aspirantes en 2da instancia${inst2State.q||inst2State.sec?" con ese filtro":""}. Se detecta desde las observaciones (ej. "2da instancia de arma y tiro").</div>`; return; }
+  if(!total){ cont.innerHTML=`<div class="amo-empty"><div class="big">📄</div>No hay aspirantes en 2da instancia${inst2State.q||inst2State.sec||inst2State.mat?" con ese filtro":""}. Se detectan de 3 formas: por la marca manual del editor, por la nota de 2da Instancia cargada, o por las observaciones (ej. "2da instancia de arma y tiro").</div>`; return; }
   const secs=[...secSet].sort();
   cont.innerHTML=secs.map(s=>{
     const items=list.filter(x=>String(x.a.seccion)===s).sort((p,q2)=>p.a.nombre.localeCompare(q2.a.nombre));
@@ -1428,7 +1492,9 @@ function renderInst2(){
       const pills=x.mats.map(mm=>{
         if(mm.origen==="nota"){ const val=(mm.final2!==null)?fmt1NoTag(mm.final2):escapeHtml(mm.raw||"");
           return `<span class="inst2-pill ${inst2PillClass(mm.final2)}">${inst2MatLabel(mm.m)} <span class="n2">${val}</span></span>`; }
-        return `<span class="inst2-pill pill-obs">${inst2MatLabel(mm.m)} <span class="tag2">2da inst.</span></span>`;
+        const cls=mm.origen==="manual"?"pill-manual":"pill-obs";
+        const tg=mm.origen==="manual"?"manual":"2da inst.";
+        return `<span class="inst2-pill ${cls}">${inst2MatLabel(mm.m)} <span class="tag2">${tg}</span></span>`;
       }).join("");
       const obsTxt=(x.a.obs||"").trim();
       const obsNote=obsTxt?`<div class="oi-obsnote">📝 ${escapeHtml(obsTxt)}</div>`:"";
@@ -1440,13 +1506,14 @@ function renderInst2(){
     return `<div class="sec-block"><div class="secgroup-ttl">Sección ${s}<span class="sec-count">${items.length} aspirante(s)</span></div><div class="sec-breakdown">${bdHtml}</div><div class="obs-list">${cards}</div></div>`;
   }).join("");
 }
-function inst2NotaExport(mm){ if(mm.origen==="obs")return "Según observación"; return (mm.final2!==null?mm.final2:(mm.raw||"")); }
+function inst2NotaExport(mm){ if(mm.origen==="obs"||mm.origen==="manual")return "Según observación"; return (mm.final2!==null?mm.final2:(mm.raw||"")); }
+function inst2OrigenLabel(o){ return o==="nota"?"Nota 2da Inst.":(o==="manual"?"Marca manual":"Observación"); }
 function exportInst2Excel(){
   const list=inst2Filtradas();
   if(!list.length){ toast("No hay aspirantes en 2da instancia para exportar"); return; }
   const rows=[];
   list.slice().sort((p,q2)=>String(p.a.seccion).localeCompare(String(q2.a.seccion))||p.a.nombre.localeCompare(q2.a.nombre))
-    .forEach(x=>x.mats.forEach(mm=>rows.push({"Sección":x.a.seccion,"Aspirante":x.a.nombre,"DNI":x.a.dni||"","Materia":inst2MatLabel(mm.m),"Origen":mm.origen==="obs"?"Observación":"Nota 2da Inst.","Nota / Detalle":inst2NotaExport(mm),"Observación":(x.a.obs||"").trim()})));
+    .forEach(x=>x.mats.forEach(mm=>rows.push({"Sección":x.a.seccion,"Aspirante":x.a.nombre,"DNI":x.a.dni||"","Materia":inst2MatLabel(mm.m),"Origen":inst2OrigenLabel(mm.origen),"Nota / Detalle":inst2NotaExport(mm),"Observación":(x.a.obs||"").trim()})));
   const ws=XLSX.utils.json_to_sheet(rows); const wb=XLSX.utils.book_new();
   const matSlug=inst2State.mat?"_"+inst2Norm(inst2MatLabel(inst2State.mat)).replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""):"";
   const hoja=inst2State.mat?("2da Inst "+inst2MatLabel(inst2State.mat)).slice(0,31):"2da Instancia";
@@ -1465,7 +1532,7 @@ function exportInst2PDF(){
   pdfHeader(doc,W,"2da Instancia"+tituloMat+" · Aspirantes 2026",`${list.length} aspirante(s)${inst2State.sec?" · Sección "+inst2State.sec:" · Todas las secciones"}${inst2State.mat?" · Materia: "+inst2MatLabel(inst2State.mat):""}${resumen?"  ·  "+resumen:""}`);
   const body=[];
   list.slice().sort((p,q2)=>String(p.a.seccion).localeCompare(String(q2.a.seccion))||p.a.nombre.localeCompare(q2.a.nombre))
-    .forEach(x=>x.mats.forEach((mm,i)=>body.push([i===0?x.a.seccion:"",i===0?x.a.nombre:"",i===0?(x.a.dni||"—"):"",inst2MatLabel(mm.m),(mm.origen==="obs"?"s/ obs.":(mm.final2!==null?fmt1NoTag(mm.final2):(mm.raw||"")))])));
+    .forEach(x=>x.mats.forEach((mm,i)=>body.push([i===0?x.a.seccion:"",i===0?x.a.nombre:"",i===0?(x.a.dni||"—"):"",inst2MatLabel(mm.m),(mm.origen==="nota"?(mm.final2!==null?fmt1NoTag(mm.final2):(mm.raw||"")):(mm.origen==="manual"?"manual":"s/ obs."))])));
   doc.autoTable({startY:68,head:[["Sec","Aspirante","DNI","Materia","Nota 2da Inst."]],body,theme:"striped",
     headStyles:{fillColor:[158,27,44],fontSize:8.5},bodyStyles:{fontSize:8.5},
     columnStyles:{0:{halign:"center",cellWidth:32},1:{cellWidth:190,fontStyle:"bold"},2:{cellWidth:80},3:{cellWidth:230},4:{halign:"center",cellWidth:90}}});
