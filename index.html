@@ -269,6 +269,22 @@ select:focus{outline:none;border-color:var(--green3)}
 .rank-row.top3{background:linear-gradient(90deg,rgba(201,162,39,.1),transparent)}
 .rank-row.sancionado{box-shadow:inset 4px 0 0 var(--crit)}
 .rank-row.sancionado.top3{background:linear-gradient(90deg,rgba(138,20,32,.14),rgba(201,162,39,.08))}
+/* ===== PODIO (Top 3) ===== */
+.podio-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-bottom:18px}
+.podio-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;cursor:pointer;transition:.15s;position:relative;overflow:hidden;border-top:4px solid var(--gold)}
+.podio-card:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(0,0,0,.13)}
+.podio-card.p1{border-top-color:#c9a227;background:linear-gradient(160deg,rgba(201,162,39,.13),transparent 60%)}
+.podio-card.p2{border-top-color:#9aa3ad;background:linear-gradient(160deg,rgba(154,163,173,.13),transparent 60%)}
+.podio-card.p3{border-top-color:#b07a42;background:linear-gradient(160deg,rgba(176,122,66,.13),transparent 60%)}
+.podio-medal{font-size:34px;line-height:1}
+.podio-pos{font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:800;color:var(--muted);margin-top:4px}
+.podio-name{font-weight:900;font-size:16.5px;color:var(--ink);margin-top:8px}
+.podio-sub{font-size:11.5px;color:var(--muted);font-weight:600;margin-top:3px}
+.podio-merito{font-family:'JetBrains Mono',monospace;font-weight:900;font-size:30px;margin-top:10px;color:var(--ok)}
+.podio-mini{display:flex;gap:14px;margin-top:8px;flex-wrap:wrap}
+.podio-mini span{font-size:11px;font-weight:700;color:var(--muted)}
+.podio-mini b{font-family:'JetBrains Mono',monospace;color:var(--ink);font-size:12.5px}
+.podio-actions{margin-top:12px;display:flex;gap:8px}
 .amo-badge{display:inline-flex;align-items:center;gap:3px;margin-left:7px;background:var(--crit);color:#fff;font-size:10px;font-weight:800;letter-spacing:.3px;padding:2px 7px;border-radius:999px;vertical-align:middle;white-space:nowrap;text-transform:uppercase}
 .card.sancionado{box-shadow:inset 0 0 0 1.5px var(--crit)}
 .amo-card-flag{display:inline-flex;align-items:center;gap:4px;background:var(--crit);color:#fff;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:999px;margin-top:7px;letter-spacing:.3px;text-transform:uppercase}
@@ -357,7 +373,8 @@ footer{text-align:center;padding:22px;font-size:11px;color:var(--muted);letter-s
 <div class="tabs">
   <button class="tab active" data-tab="rend" onclick="switchTab('rend')">📋 Rendimiento</button>
   <button class="tab" data-tab="merito" onclick="switchTab('merito')">🏅 Orden de Mérito</button>
-  <button class="tab" data-tab="amo" onclick="switchTab('amo')">⚠️ Amonestaciones</button>
+  <button class="tab" data-tab="podio" onclick="switchTab('podio')">🏆 Podio (1-3)</button>
+<button class="tab" data-tab="amo" onclick="switchTab('amo')">⚠️ Amonestaciones</button>
   <button class="tab" data-tab="obs" onclick="switchTab('obs')">📝 Observaciones</button>
   <button class="tab" data-tab="inst2" onclick="switchTab('inst2')">📄 2da Instancia</button>
 </div>
@@ -430,6 +447,22 @@ footer{text-align:center;padding:22px;font-size:11px;color:var(--muted);letter-s
 </div>
 </div>
 
+<div id="view-podio" style="display:none">
+<div class="controls">
+  <div class="spacer" style="flex:1"></div>
+  <button class="btn btn-ghost" onclick="exportPodioPDF()">⬇ PDF del Podio (los 3 juntos)</button>
+  <button class="btn btn-gold" onclick="exportPodioExcel()">⬇ Excel</button>
+</div>
+<div class="wrap">
+  <div class="merito-formula">
+    <span class="mf-title">Podio · Primeros 3 puestos</span>
+    <span class="mf-eq">Top 3 del Orden de Mérito general</span>
+    <span class="mf-note">Se toma el ranking general (todas las secciones), sin filtros. Un único PDF: la tabla del orden de mérito y luego el rendimiento académico detallado de los 3, en orden del 1º al 3º puesto. Las descargas individuales están en la pestaña Rendimiento.</span>
+  </div>
+  <div class="count" id="countP"></div>
+  <div id="podioList"></div>
+</div>
+</div>
 <div id="view-amo" style="display:none">
 <div class="controls">
   <div class="search">
@@ -717,7 +750,7 @@ function cloudSubscribe(){
             DATA = ordenarAspirantes(DATA);
           }
           try{ localStorage.setItem(DATA_KEY, JSON.stringify(DATA)); }catch(e){}
-          renderKpis(); render(); refreshMeritoIfOpen(); refreshObsIfOpen(); refreshInst2IfOpen();
+          renderKpis(); render(); refreshMeritoIfOpen(); refreshPodioIfOpen(); refreshObsIfOpen(); refreshInst2IfOpen();
         } else if(id.indexOf(AMO_PREFIX)===0){
           if(payload.eventType==="DELETE"){
             AMO = AMO.filter(r=>AMO_PREFIX+r.id!==id);
@@ -727,7 +760,7 @@ function cloudSubscribe(){
             if(i>=0) AMO[i]=r; else AMO.push(r);
           }
           try{ localStorage.setItem(AMO_KEY, JSON.stringify(AMO)); }catch(e){}
-          refreshAmoIfOpen(); render(); refreshMeritoIfOpen();
+          refreshAmoIfOpen(); render(); refreshMeritoIfOpen(); refreshPodioIfOpen();
         }
       }).subscribe();
   }catch(e){ console.warn("cloudSubscribe excepción", e); }
@@ -802,7 +835,7 @@ function startApp(u){
   if(initSupabase()){
     setSyncBadge("sync");
     cloudLoad().then(ok=>{
-      if(ok){ renderKpis(); render(); refreshMeritoIfOpen(); refreshObsIfOpen(); refreshInst2IfOpen(); cloudSubscribe(); setSyncBadge("ok"); }
+      if(ok){ renderKpis(); render(); refreshMeritoIfOpen(); refreshPodioIfOpen(); refreshObsIfOpen(); refreshInst2IfOpen(); cloudSubscribe(); setSyncBadge("ok"); }
       else { setSyncBadge("off"); }
     });
   } else { setSyncBadge("off"); }
@@ -1203,13 +1236,13 @@ function saveEdit(id,isNew){
     aspGuardado=a;
     toast("Cambios guardados ✓");
   }
-  saveData(); cloudPushAspirante(aspGuardado); renderKpis(); render(); refreshMeritoIfOpen(); refreshObsIfOpen(); refreshInst2IfOpen(); closeModal();
+  saveData(); cloudPushAspirante(aspGuardado); renderKpis(); render(); refreshMeritoIfOpen(); refreshPodioIfOpen(); refreshObsIfOpen(); refreshInst2IfOpen(); closeModal();
 }
 function newAspirante(){ openEdit("__new__"); }
 function delAspirante(id){
   const a=DATA.find(x=>x.id===id); if(!a)return;
   if(!confirm(`¿Eliminar a ${a.nombre}? Esta acción no se puede deshacer.`))return;
-  DATA=DATA.filter(x=>x.id!==id); saveData(); cloudDeleteAspirante(id); renderKpis(); render(); refreshMeritoIfOpen(); refreshObsIfOpen(); refreshInst2IfOpen(); closeModal(); toast("Aspirante eliminado");
+  DATA=DATA.filter(x=>x.id!==id); saveData(); cloudDeleteAspirante(id); renderKpis(); render(); refreshMeritoIfOpen(); refreshPodioIfOpen(); refreshObsIfOpen(); refreshInst2IfOpen(); closeModal(); toast("Aspirante eliminado");
 }
 
 /* ===================== MODAL HELPERS ===================== */
@@ -1268,10 +1301,12 @@ function switchTab(t){
   document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.tab===t));
   document.getElementById("view-rend").style.display=t==="rend"?"":"none";
   document.getElementById("view-merito").style.display=t==="merito"?"":"none";
+  document.getElementById("view-podio").style.display=t==="podio"?"":"none";
   document.getElementById("view-amo").style.display=t==="amo"?"":"none";
   document.getElementById("view-obs").style.display=t==="obs"?"":"none";
   document.getElementById("view-inst2").style.display=t==="inst2"?"":"none";
   if(t==="merito")renderMerito();
+  if(t==="podio")renderPodio();
   if(t==="amo")renderAmo();
   if(t==="obs")renderObs();
   if(t==="inst2")renderInst2();
@@ -1604,13 +1639,13 @@ function saveAmoRow(id,isNew){
   };
   if(isNew) AMO.push(rec);
   else { const i=AMO.findIndex(x=>x.id===id); if(i>=0)AMO[i]=rec; else AMO.push(rec); }
-  saveAmo(); cloudPushAmoRow(rec); renderAmo(); render(); refreshMeritoIfOpen(); closeModal(); toast(isNew?"Amonestación cargada ✓":"Amonestación actualizada ✓");
+  saveAmo(); cloudPushAmoRow(rec); renderAmo(); render(); refreshMeritoIfOpen(); refreshPodioIfOpen(); closeModal(); toast(isNew?"Amonestación cargada ✓":"Amonestación actualizada ✓");
 }
 function deleteAmo(id){
   const r=AMO.find(x=>x.id===id); if(!r)return;
   const a=DATA.find(x=>x.id===r.aspiranteId);
   if(!confirm(`¿Eliminar esta amonestación de ${a?a.nombre:(r.nombre||"el aspirante")}? Esta acción no se puede deshacer.`))return;
-  AMO=AMO.filter(x=>x.id!==id); saveAmo(); cloudDeleteAmoRow(id); renderAmo(); render(); refreshMeritoIfOpen(); toast("Amonestación eliminada");
+  AMO=AMO.filter(x=>x.id!==id); saveAmo(); cloudDeleteAmoRow(id); renderAmo(); render(); refreshMeritoIfOpen(); refreshPodioIfOpen(); toast("Amonestación eliminada");
 }
 function exportAmoExcel(){
   const list=amoFiltradas();
@@ -1673,12 +1708,11 @@ function pdfWatermark(doc){
     doc.text("MLF&EV",W-30,H-14,{align:"right"}); }
 }
 function colorMerito(d,idx){ if(d.section==="body"&&d.column.index===idx){const v=parseFloat(d.cell.text[0]); if(!isNaN(v)){ if(v<6){d.cell.styles.textColor=[179,38,30];d.cell.styles.fontStyle="bold";} else if(v<7){d.cell.styles.textColor=[179,121,26];} else {d.cell.styles.textColor=[92,138,31];}}}}
-function exportPDF(singleId){
-  const {jsPDF}=window.jspdf;
-  if(singleId){
-    const a=DATA.find(x=>x.id===singleId); const an=analizar(a);
-    const doc=new jsPDF({orientation:"portrait",unit:"pt",format:"a4"}); const W=doc.internal.pageSize.getWidth();
-    pdfHeader(doc,W,a.nombre,`Sección ${a.seccion} · DNI ${a.dni||"—"}`);
+/* Dibuja el detalle completo de un aspirante en la página actual del doc (con encabezado).
+   subTitulo opcional: texto extra en el encabezado (ej: "1º puesto"). */
+function pdfDetalleAspirante(doc,a,subExtra){
+    const an=analizar(a); const W=doc.internal.pageSize.getWidth();
+    pdfHeader(doc,W,a.nombre,`Sección ${a.seccion} · DNI ${a.dni||"—"}`+(subExtra?" · "+subExtra:""));
     let y=66;
     doc.setTextColor(122,20,32);doc.setFontSize(9);doc.setFont("helvetica","bold");
     doc.text(`Prom. Académico: ${fmt(an.pa)}    Prom. Operacional: ${fmt(an.po)}    Conducta: ${fmt(an.pco)}    Mérito: ${fmt(an.prom)}`,40,y); y+=8;
@@ -1703,6 +1737,13 @@ function exportPDF(singleId){
     doc.autoTable({startY:y+12,head:[["TALLERES","Estado"]],body:tbody,theme:"grid",headStyles:{fillColor:[158,27,44],fontSize:8},bodyStyles:{fontSize:8},columnStyles:{0:{cellWidth:300,halign:"left"}}});
     y=doc.lastAutoTable.finalY;
     if((a.obs||"").trim()){ doc.autoTable({startY:y+12,head:[["OBSERVACIONES"]],body:[[a.obs]],theme:"grid",headStyles:{fillColor:[158,27,44],fontSize:8},bodyStyles:{fontSize:8.5},columnStyles:{0:{halign:"left"}}}); }
+}
+function exportPDF(singleId){
+  const {jsPDF}=window.jspdf;
+  if(singleId){
+    const a=DATA.find(x=>x.id===singleId);
+    const doc=new jsPDF({orientation:"portrait",unit:"pt",format:"a4"});
+    pdfDetalleAspirante(doc,a);
     pdfWatermark(doc);doc.save("rendimiento_"+a.nombre.replace(/\s+/g,"_")+".pdf");
   } else {
     const doc=new jsPDF({orientation:"landscape",unit:"pt",format:"a4"}); const W=doc.internal.pageSize.getWidth();
@@ -1741,6 +1782,69 @@ function exportMeritoPDF(){
   pdfWatermark(doc);doc.save("orden_merito_"+new Date().toISOString().slice(0,10)+".pdf"); toast("PDF descargado ✓");
 }
 function fmtNT(v){return typeof v==="number"?(Math.round(v*100)/100).toFixed(2):"–";}
+
+/* ===================== PODIO · PRIMEROS 3 PUESTOS ===================== */
+/* Siempre ranking general (todas las secciones), sin filtros de la pestaña Mérito */
+function podioTop3(){
+  return DATA.map(a=>({a,m:meritoDe(a)}))
+    .filter(x=>x.m.merito!=null)
+    .sort((p,q)=>q.m.merito-p.m.merito)
+    .slice(0,3);
+}
+function renderPodio(){
+  const cont=document.getElementById("podioList"); const top=podioTop3();
+  const cnt=document.getElementById("countP");
+  if(!top.length){ cont.innerHTML=`<div class="empty"><div class="big">🏆</div>Todavía no hay aspirantes con mérito completo</div>`; cnt.innerHTML=""; return; }
+  const conMerito=DATA.filter(a=>meritoDe(a).merito!=null).length;
+  cnt.innerHTML=`Podio calculado sobre <b>${conMerito}</b> aspirantes con mérito completo (de <b>${DATA.length}</b>)`;
+  const med=["🥇","🥈","🥉"], ord=["1º Puesto","2º Puesto","3º Puesto"];
+  cont.innerHTML=`<div class="podio-grid">`+top.map((x,i)=>{
+    const {a,m}=x; const amo=amoTotalDe(a.id);
+    const col=m.merito<6?"var(--crit)":m.merito<7?"var(--warn)":"var(--ok)";
+    return `<div class="podio-card p${i+1}" onclick="switchTab('rend');setTimeout(()=>openView('${a.id}'),60)">
+      <div class="podio-medal">${med[i]}</div>
+      <div class="podio-pos">${ord[i]} · Orden de mérito general</div>
+      <div class="podio-name">${a.nombre}${amo.exp>0?`<span class="amo-badge">⚠️ ${amo.cant||amo.exp} amonest.</span>`:""}</div>
+      <div class="podio-sub">Sección ${a.seccion} · DNI ${a.dni||"—"}</div>
+      <div class="podio-merito" style="color:${col}">${m.merito.toFixed(2)}</div>
+      <div class="podio-mini"><span>Acad. <b>${fmtNT(m.acad)}</b></span><span>Oper. <b>${fmtNT(m.oper)}</b></span><span>Cond. <b>${fmtNT(m.cond)}</b></span></div>
+    </div>`;
+  }).join("")+`</div>`;
+}
+function refreshPodioIfOpen(){ const v=document.getElementById("view-podio"); if(v&&v.style.display!=="none")renderPodio(); }
+function podioTablaPDF(doc,top){
+  const W=doc.internal.pageSize.getWidth();
+  pdfHeader(doc,W,"Podio · Primeros 3 Puestos","Orden de Mérito General · Aspirantes 2026");
+  const body=top.map((x,i)=>[i+1,x.a.seccion,x.a.nombre,x.a.dni||"–",fmtNT(x.m.acad),fmtNT(x.m.oper),fmtNT(x.m.cond),x.m.merito.toFixed(2)]);
+  doc.autoTable({startY:68,head:[["Pos","Sec","Nombre","DNI","Acad.","Oper.","Cond.","Mérito"]],body,theme:"grid",
+    headStyles:{fillColor:[158,27,44],fontSize:9},bodyStyles:{fontSize:9.5},
+    columnStyles:{0:{halign:"center",cellWidth:32,fontStyle:"bold"},1:{halign:"center",cellWidth:30},2:{cellWidth:170,fontStyle:"bold"},3:{halign:"center",cellWidth:66},4:{halign:"center"},5:{halign:"center"},6:{halign:"center"},7:{halign:"center",fontStyle:"bold"}},
+    didParseCell:d=>colorMerito(d,7)});
+  let y=doc.lastAutoTable.finalY+16;
+  doc.setTextColor(120,124,135);doc.setFontSize(8);doc.setFont("helvetica","normal");
+  doc.text("A continuación se detalla el rendimiento académico de cada uno, en orden de mérito.",40,y);
+}
+function exportPodioPDF(){
+  const {jsPDF}=window.jspdf; const top=podioTop3();
+  if(!top.length){ toast("Sin aspirantes con mérito completo"); return; }
+  const doc=new jsPDF({orientation:"portrait",unit:"pt",format:"a4"});
+  podioTablaPDF(doc,top);
+  const ord=["1º Puesto","2º Puesto","3º Puesto"];
+  top.forEach((x,i)=>{ doc.addPage(); pdfDetalleAspirante(doc,x.a,`${ord[i]} · Mérito ${x.m.merito.toFixed(2)}`); });
+  pdfWatermark(doc);
+  doc.save("podio_top3_"+new Date().toISOString().slice(0,10)+".pdf");
+  toast("PDF del podio descargado ✓");
+}
+function exportPodioExcel(){
+  const top=podioTop3();
+  if(!top.length){ toast("Sin aspirantes con mérito completo"); return; }
+  const rows=top.map((x,i)=>({"Pos.":i+1,"Sección":x.a.seccion,"Nombre":x.a.nombre,"DNI":x.a.dni,
+    "Prom. Académico":x.m.acad!=null?Math.round(x.m.acad*100)/100:"","Prom. Operacional":x.m.oper!=null?Math.round(x.m.oper*100)/100:"",
+    "Conducta":x.m.cond!=null?Math.round(x.m.cond*100)/100:"","Orden de Mérito":Math.round(x.m.merito*100)/100,
+    "Amonestaciones":amoTotalDe(x.a.id).cant||0,"Observaciones":x.a.obs||""}));
+  const ws=XLSX.utils.json_to_sheet(rows); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Podio Top 3");
+  XLSX.writeFile(wb,"podio_top3_"+new Date().toISOString().slice(0,10)+".xlsx"); toast("Excel descargado ✓");
+}
 
 /* ===================== EVENTOS ===================== */
 document.getElementById("q").addEventListener("input",e=>{state.q=e.target.value;render();});
