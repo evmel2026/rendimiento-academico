@@ -93,8 +93,10 @@ header::after{content:"";position:absolute;inset:0;background:repeating-linear-g
 .kpi .l{font-size:9.5px;letter-spacing:1.4px;text-transform:uppercase;color:rgba(255,255,255,.6);margin-top:5px;font-weight:600}
 .kpi.bad .n{color:var(--gold-soft)}
 
-.tabs{display:flex;background:var(--card);border-bottom:1px solid var(--line);padding:0 26px}
-.tab{background:none;border:none;padding:15px 22px;font-size:13.5px;font-weight:800;letter-spacing:.3px;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;transition:.15s;margin-bottom:-1px}
+.tabs{display:flex;background:var(--card);border-bottom:1px solid var(--line);padding:0 26px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.tabs::-webkit-scrollbar{height:4px}
+.tabs::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+.tab{background:none;border:none;padding:15px 22px;font-size:13.5px;font-weight:800;letter-spacing:.3px;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;transition:.15s;margin-bottom:-1px;white-space:nowrap;flex-shrink:0}
 .tab:hover{color:var(--ink)}
 .tab.active{color:var(--green3);border-bottom-color:var(--gold)}
 
@@ -377,6 +379,7 @@ footer{text-align:center;padding:22px;font-size:11px;color:var(--muted);letter-s
 <button class="tab" data-tab="amo" onclick="switchTab('amo')">⚠️ Amonestaciones</button>
   <button class="tab" data-tab="obs" onclick="switchTab('obs')">📝 Observaciones</button>
   <button class="tab" data-tab="inst2" onclick="switchTab('inst2')">📄 2da Instancia</button>
+  <button class="tab" data-tab="ext" onclick="switchTab('ext')">📝 Mesa Examen Extraordinario</button>
 </div>
 
 <div id="view-rend">
@@ -545,6 +548,36 @@ footer{text-align:center;padding:22px;font-size:11px;color:var(--muted);letter-s
   <div class="amo-kpis" id="inst2Kpis"></div>
   <div class="count" id="countInst2"></div>
   <div id="inst2List"></div>
+</div>
+</div>
+
+<div id="view-ext" style="display:none">
+<div class="controls">
+  <div class="search">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input id="qext" type="text" placeholder="Buscar por nombre o DNI...">
+  </div>
+  <select id="secFilterExt">
+    <option value="">Todas las secciones</option>
+    <option value="1">Sección 1</option><option value="2">Sección 2</option>
+    <option value="3">Sección 3</option><option value="4">Sección 4</option>
+    <option value="5">Sección 5</option>
+  </select>
+  <select id="matFilterExt" title="Filtrar y exportar por materia">
+    <option value="">Todas las materias</option>
+  </select>
+  <div class="spacer" style="flex:1"></div>
+  <button class="btn btn-ghost" onclick="exportExtPDF()">⬇ PDF</button>
+  <button class="btn btn-gold" onclick="exportExtExcel()">⬇ Excel</button>
+</div>
+<div class="wrap">
+  <div class="amo-formula">
+    <span class="mf-title">📝 Mesa de Examen Extraordinario por sección</span>
+    <span class="mf-note">Aspirantes que van a examen extraordinario (por no aprobar la 2da instancia), agrupados por sección. Se detectan desde la nota de Examen Extraordinario si estuviera cargada y también desde las observaciones (ej. "extraordinario de arma y tiro"). Esta nota solo figura: no modifica el promedio.</span>
+  </div>
+  <div class="amo-kpis" id="extKpis"></div>
+  <div class="count" id="countExt"></div>
+  <div id="extList"></div>
 </div>
 </div>
 
@@ -750,7 +783,7 @@ function cloudSubscribe(){
             DATA = ordenarAspirantes(DATA);
           }
           try{ localStorage.setItem(DATA_KEY, JSON.stringify(DATA)); }catch(e){}
-          renderKpis(); render(); refreshMeritoIfOpen(); refreshPodioIfOpen(); refreshObsIfOpen(); refreshInst2IfOpen();
+          renderKpis(); render(); refreshMeritoIfOpen(); refreshPodioIfOpen(); refreshObsIfOpen(); refreshInst2IfOpen(); refreshExtIfOpen();
         } else if(id.indexOf(AMO_PREFIX)===0){
           if(payload.eventType==="DELETE"){
             AMO = AMO.filter(r=>AMO_PREFIX+r.id!==id);
@@ -835,7 +868,7 @@ function startApp(u){
   if(initSupabase()){
     setSyncBadge("sync");
     cloudLoad().then(ok=>{
-      if(ok){ renderKpis(); render(); refreshMeritoIfOpen(); refreshPodioIfOpen(); refreshObsIfOpen(); refreshInst2IfOpen(); cloudSubscribe(); setSyncBadge("ok"); }
+      if(ok){ renderKpis(); render(); refreshMeritoIfOpen(); refreshPodioIfOpen(); refreshObsIfOpen(); refreshInst2IfOpen(); refreshExtIfOpen(); cloudSubscribe(); setSyncBadge("ok"); }
       else { setSyncBadge("off"); }
     });
   } else { setSyncBadge("off"); }
@@ -896,7 +929,7 @@ function num(v){ if(typeof v==="number")return v; if(typeof v==="string"){const 
 function promCursada(mat){ const a=num(mat.n1),b=num(mat.n2); if(a!==null&&b!==null)return (a+b)/2; if(a!==null)return a; if(b!==null)return b; return null; }
 function promFinal(matName,mat){
   const pc=promCursada(mat);
-  if(CON_FINAL.includes(matName)){ const f1=num(mat.final),f2=num(mat.final2); let fp=null; if(f1!==null&&f2!==null)fp=(f1+f2)/2; else if(f1!==null)fp=f1; else if(f2!==null)fp=f2; if(pc!==null&&fp!==null)return (pc+fp)/2; if(fp!==null)return fp; return pc; }
+  if(CON_FINAL.includes(matName)){ const f1=num(mat.final); /* SOLO el Examen Final afecta el promedio. 2da Instancia (final2) y Examen Extraordinario (final3) solo figuran. */ if(pc!==null&&f1!==null)return (pc+f1)/2; if(f1!==null)return f1; return pc; }
   return pc;
 }
 function promBloque(obj,keys){ let s=0,c=0; for(const m of keys){const pf=promFinal(m,obj[m]||{}); if(typeof pf==="number"){s+=pf;c++;}} return c?s/c:null; }
@@ -1016,7 +1049,7 @@ function tallEstadoPill(v){
 function openView(id){
   const a=DATA.find(x=>x.id===id); if(!a)return; const an=analizar(a);
   const tabFor=(bk,keys)=>`<table class="ntab"><thead><tr>
-      <th class="mat">Materia</th><th>1ª Nota</th><th>2ª Nota</th><th>Prom. Cursada</th><th class="h-hide">Examen Final</th><th class="h-hide">2da Instancia</th><th>Prom. Final</th></tr></thead><tbody>`+
+      <th class="mat">Materia</th><th>1ª Nota</th><th>2ª Nota</th><th>Prom. Cursada</th><th class="h-hide">Examen Final</th><th class="h-hide">2da Instancia</th><th class="h-hide">Extraord.</th><th>Prom. Final</th></tr></thead><tbody>`+
       keys.map(m=>{ const r=an.rows.find(x=>x.block===bk&&x.m===m); const mat=r.mat; const hasFinal=CON_FINAL.includes(m);
         const n1disp=(typeof mat.n1==="string")?`<span style="color:${mat.n1.toUpperCase().includes("DESAP")?"var(--crit)":"var(--ok)"};font-weight:700;font-size:11px">${mat.n1}</span>`:fmt1(mat.n1);
         const n2disp=(typeof mat.n2==="string")?`<span style="color:${mat.n2.toUpperCase().includes("DESAP")?"var(--crit)":"var(--ok)"};font-weight:700;font-size:11px">${mat.n2}</span>`:fmt1(mat.n2);
@@ -1025,6 +1058,7 @@ function openView(id){
           <td class="prom"><span class="cell">${fmt1(r.pc)}</span></td>
           <td class="h-hide"><span class="cell">${hasFinal?fmt1(mat.final):'<span class="dash">—</span>'}</span></td>
           <td class="h-hide"><span class="cell">${hasFinal?fmt1(mat.final2):'<span class="dash">—</span>'}</span></td>
+          <td class="h-hide"><span class="cell">${hasFinal?fmt1(mat.final3):'<span class="dash">—</span>'}</span></td>
           <td class="prom"><span class="cell">${fmt1(r.pf)}</span></td></tr>`; }).join("")+`</tbody></table>`;
   const condR=an.rows.find(x=>x.block==="conducta");
   const condTab=`<table class="ntab"><thead><tr><th class="mat">Conducta</th><th>1ª Nota</th><th>2ª Nota</th><th>Promedio</th></tr></thead><tbody>
@@ -1094,7 +1128,7 @@ function renderAspiranteView(dni){
   if(!a){ cont.innerHTML=`<div class="wrap"><div class="empty"><div class="big">⚠</div>No se encontraron tus datos. Avisá a la Secretaría Académica.</div></div>`; return; }
   const an=analizar(a);
   const tabFor=(bk,keys)=>`<table class="ntab"><thead><tr>
-      <th class="mat">Materia</th><th>1ª Nota</th><th>2ª Nota</th><th>Prom. Cursada</th><th class="h-hide">Examen Final</th><th class="h-hide">2da Instancia</th><th>Prom. Final</th></tr></thead><tbody>`+
+      <th class="mat">Materia</th><th>1ª Nota</th><th>2ª Nota</th><th>Prom. Cursada</th><th class="h-hide">Examen Final</th><th class="h-hide">2da Instancia</th><th class="h-hide">Extraord.</th><th>Prom. Final</th></tr></thead><tbody>`+
       keys.map(m=>{ const r=an.rows.find(x=>x.block===bk&&x.m===m); const mat=r.mat; const hasFinal=CON_FINAL.includes(m);
         const n1disp=(typeof mat.n1==="string")?`<span style="color:${mat.n1.toUpperCase().includes("DESAP")?"var(--crit)":"var(--ok)"};font-weight:700;font-size:11px">${mat.n1}</span>`:fmt1(mat.n1);
         const n2disp=(typeof mat.n2==="string")?`<span style="color:${mat.n2.toUpperCase().includes("DESAP")?"var(--crit)":"var(--ok)"};font-weight:700;font-size:11px">${mat.n2}</span>`:fmt1(mat.n2);
@@ -1103,6 +1137,7 @@ function renderAspiranteView(dni){
           <td class="prom"><span class="cell">${fmt1(r.pc)}</span></td>
           <td class="h-hide"><span class="cell">${hasFinal?fmt1(mat.final):'<span class="dash">—</span>'}</span></td>
           <td class="h-hide"><span class="cell">${hasFinal?fmt1(mat.final2):'<span class="dash">—</span>'}</span></td>
+          <td class="h-hide"><span class="cell">${hasFinal?fmt1(mat.final3):'<span class="dash">—</span>'}</span></td>
           <td class="prom"><span class="cell">${fmt1(r.pf)}</span></td></tr>`; }).join("")+`</tbody></table>`;
   const condR=an.rows.find(x=>x.block==="conducta");
   const condTab=`<table class="ntab"><thead><tr><th class="mat">Conducta</th><th>1ª Nota</th><th>2ª Nota</th><th>Promedio</th></tr></thead><tbody>
@@ -1134,7 +1169,7 @@ function renderAspiranteView(dni){
 
 /* ===================== EDITAR / AGREGAR ===================== */
 function blankAspirante(){
-  const mk=(keys)=>{const o={};keys.forEach(m=>o[m]=CON_FINAL.includes(m)?{n1:null,n2:null,final:null,final2:null}:{n1:null,n2:null});return o;};
+  const mk=(keys)=>{const o={};keys.forEach(m=>o[m]=CON_FINAL.includes(m)?{n1:null,n2:null,final:null,final2:null,final3:null}:{n1:null,n2:null});return o;};
   const tall={}; TALLERES.forEach(t=>tall[t]=null);
   return {id:"new_"+Date.now(),seccion:"1",nombre:"",dni:"",academicas:mk(ACAD),operacionales:mk(OPER),conducta:{n1:null,n2:null},talleres:tall,obs:""};
 }
@@ -1147,7 +1182,8 @@ function matBlockHTML(obj,keys){
         <div><label>1ª Nota</label><input type="text" inputmode="decimal" class="e-n1" value="${n1val}"></div>
         <div><label>2ª Nota</label><input type="text" inputmode="decimal" class="e-n2" value="${mat.n2??""}"></div>
         ${hasFinal?`<div><label>Examen Final</label><input type="text" inputmode="decimal" class="e-final" value="${mat.final??""}"></div>`:``}
-        ${hasFinal?`<div><label>2da Instancia</label><input type="text" inputmode="decimal" class="e-final2" value="${mat.final2??""}"></div>`:``}
+        ${hasFinal?`<div><label>2da Instancia <span style="color:var(--muted);font-size:8px">(no promedia)</span></label><input type="text" inputmode="decimal" class="e-final2" value="${mat.final2??""}"></div>`:``}
+        ${hasFinal?`<div><label>Ex. Extraordinario <span style="color:var(--muted);font-size:8px">(no promedia)</span></label><input type="text" inputmode="decimal" class="e-final3" value="${mat.final3??""}"></div>`:``}
         <div class="prom-live">–</div>
       </div></div>`; }).join("");
 }
@@ -1194,10 +1230,9 @@ function updateLive(el){
   const n1=parseFloat((el.querySelector(".e-n1").value||"").replace(",","."));
   const n2=parseFloat((el.querySelector(".e-n2").value||"").replace(",","."));
   const fEl=el.querySelector(".e-final"); const f=fEl?parseFloat((fEl.value||"").replace(",",".")):NaN;
-  const f2El=el.querySelector(".e-final2"); const f2=f2El?parseFloat((f2El.value||"").replace(",",".")):NaN;
   const a=isNaN(n1)?null:n1, b=isNaN(n2)?null:n2;
   let pc=(a!==null&&b!==null)?(a+b)/2:(a!==null?a:(b!==null?b:null)); let pf=pc;
-  if(isFinal){ const g1=isNaN(f)?null:f, g2=isNaN(f2)?null:f2; let fprom=null; if(g1!==null&&g2!==null)fprom=(g1+g2)/2; else if(g1!==null)fprom=g1; else if(g2!==null)fprom=g2; if(fprom!==null){ pf=(pc!==null)?(pc+fprom)/2:fprom; } }
+  if(isFinal){ const g1=isNaN(f)?null:f; /* solo el Examen Final entra al promedio */ if(g1!==null){ pf=(pc!==null)?(pc+g1)/2:g1; } }
   const out=el.querySelector(".prom-live");
   out.innerHTML=(pf!==null&&pf!==undefined)?((isFinal?'P.Final':'Prom')+'<br>'+(Math.round(pf*100)/100)):'–';
   out.style.color=(pf===null)?'var(--muted)':(pf<6?'var(--crit)':(pf<7?'var(--warn)':'var(--ok)'));
@@ -1209,7 +1244,7 @@ function readMatBlock(containerId){
     const raw1=el.querySelector(".e-n1").value.trim(); const n1n=parseFloat(raw1.replace(",","."));
     const raw2=el.querySelector(".e-n2").value.trim(); const n2n=parseFloat(raw2.replace(",","."));
     const o={ n1: raw1===""?null:(isNaN(n1n)?raw1:n1n), n2: raw2===""?null:(isNaN(n2n)?raw2:n2n) };
-    if(isFinal){ const fn=parseFloat((el.querySelector(".e-final").value||"").replace(",",".")); o.final=isNaN(fn)?null:fn; const fn2=parseFloat((el.querySelector(".e-final2").value||"").replace(",",".")); o.final2=isNaN(fn2)?null:fn2; }
+    if(isFinal){ const fn=parseFloat((el.querySelector(".e-final").value||"").replace(",",".")); o.final=isNaN(fn)?null:fn; const fn2=parseFloat((el.querySelector(".e-final2").value||"").replace(",",".")); o.final2=isNaN(fn2)?null:fn2; const fn3=parseFloat((el.querySelector(".e-final3").value||"").replace(",",".")); o.final3=isNaN(fn3)?null:fn3; }
     obj[m]=o;
   });
   return obj;
@@ -1236,13 +1271,13 @@ function saveEdit(id,isNew){
     aspGuardado=a;
     toast("Cambios guardados ✓");
   }
-  saveData(); cloudPushAspirante(aspGuardado); renderKpis(); render(); refreshMeritoIfOpen(); refreshPodioIfOpen(); refreshObsIfOpen(); refreshInst2IfOpen(); closeModal();
+  saveData(); cloudPushAspirante(aspGuardado); renderKpis(); render(); refreshMeritoIfOpen(); refreshPodioIfOpen(); refreshObsIfOpen(); refreshInst2IfOpen(); refreshExtIfOpen(); closeModal();
 }
 function newAspirante(){ openEdit("__new__"); }
 function delAspirante(id){
   const a=DATA.find(x=>x.id===id); if(!a)return;
   if(!confirm(`¿Eliminar a ${a.nombre}? Esta acción no se puede deshacer.`))return;
-  DATA=DATA.filter(x=>x.id!==id); saveData(); cloudDeleteAspirante(id); renderKpis(); render(); refreshMeritoIfOpen(); refreshPodioIfOpen(); refreshObsIfOpen(); refreshInst2IfOpen(); closeModal(); toast("Aspirante eliminado");
+  DATA=DATA.filter(x=>x.id!==id); saveData(); cloudDeleteAspirante(id); renderKpis(); render(); refreshMeritoIfOpen(); refreshPodioIfOpen(); refreshObsIfOpen(); refreshInst2IfOpen(); refreshExtIfOpen(); closeModal(); toast("Aspirante eliminado");
 }
 
 /* ===================== MODAL HELPERS ===================== */
@@ -1305,16 +1340,19 @@ function switchTab(t){
   document.getElementById("view-amo").style.display=t==="amo"?"":"none";
   document.getElementById("view-obs").style.display=t==="obs"?"":"none";
   document.getElementById("view-inst2").style.display=t==="inst2"?"":"none";
+  document.getElementById("view-ext").style.display=t==="ext"?"":"none";
   if(t==="merito")renderMerito();
   if(t==="podio")renderPodio();
   if(t==="amo")renderAmo();
   if(t==="obs")renderObs();
   if(t==="inst2")renderInst2();
+  if(t==="ext")renderExt();
 }
 function refreshMeritoIfOpen(){ if(document.getElementById("view-merito").style.display!=="none")renderMerito(); }
 function refreshAmoIfOpen(){ const v=document.getElementById("view-amo"); if(v&&v.style.display!=="none")renderAmo(); }
 function refreshObsIfOpen(){ const v=document.getElementById("view-obs"); if(v&&v.style.display!=="none")renderObs(); }
 function refreshInst2IfOpen(){ const v=document.getElementById("view-inst2"); if(v&&v.style.display!=="none")renderInst2(); }
+function refreshExtIfOpen(){ const v=document.getElementById("view-ext"); if(v&&v.style.display!=="none")renderExt(); }
 
 /* ===================== OBSERVACIONES (por sección) ===================== */
 let obsState={q:"",sec:""};
@@ -1525,6 +1563,128 @@ function exportInst2PDF(){
   toast("PDF descargado ✓");
 }
 
+/* ===================== MESA EXAMEN EXTRAORDINARIO (por sección) ===================== */
+/* Detecta el examen extraordinario leyendo la nota numérica final3 y, como fuente
+   secundaria, las OBSERVACIONES del aspirante cuando mencionan "extraordinario"
+   (ej. "va a extraordinario de arma y tiro"). Esta nota SOLO figura: no promedia. */
+let extState={q:"",sec:"",mat:""};
+const GEN_EXT="__genext__"; // marca genérica: dice "extraordinario" pero sin materia identificable
+function obsMencionaExtraord(obs){ return inst2Norm(obs).includes("extraordinari"); }
+function matsExtraordinario(a){
+  const map=new Map(); // materia -> {m, nota, raw, origen}
+  // fuente 1: campo numérico final3
+  const scan=(bk,keys)=>keys.forEach(m=>{ if(!CON_FINAL.includes(m))return; const mat=(a[bk]||{})[m]||{}; const raw=mat.final3;
+    if(raw!==null&&raw!==undefined&&String(raw).trim()!==""){ map.set(m,{m,nota:num(raw),raw:String(raw).trim(),origen:"nota"}); } });
+  scan("academicas",ACAD); scan("operacionales",OPER);
+  // fuente 2: observaciones (texto libre) que mencionan extraordinario
+  if(obsMencionaExtraord(a.obs)){
+    const subs=subjectsFromObs(a.obs);
+    if(subs.length){ subs.forEach(m=>{ if(!map.has(m)) map.set(m,{m,nota:null,raw:null,origen:"obs"}); }); }
+    else if(map.size===0){ map.set(GEN_EXT,{m:GEN_EXT,nota:null,raw:null,origen:"obs"}); }
+  }
+  return [...map.values()];
+}
+function aspExtraordinario(){
+  return DATA.map(a=>({a,mats:matsExtraordinario(a)})).filter(x=>x.mats.length>0);
+}
+function extFiltradas(){
+  let list=aspExtraordinario();
+  const q=extState.q.toLowerCase().trim();
+  if(q)list=list.filter(x=>(x.a.nombre||"").toLowerCase().includes(q)||String(x.a.dni||"").includes(q));
+  if(extState.sec)list=list.filter(x=>String(x.a.seccion)===extState.sec);
+  if(extState.mat){
+    list=list.map(x=>({a:x.a,mats:x.mats.filter(mm=>mm.m===extState.mat)})).filter(x=>x.mats.length>0);
+  }
+  return list;
+}
+function extMateriasDisponibles(){
+  let list=aspExtraordinario();
+  const q=extState.q.toLowerCase().trim();
+  if(q)list=list.filter(x=>(x.a.nombre||"").toLowerCase().includes(q)||String(x.a.dni||"").includes(q));
+  if(extState.sec)list=list.filter(x=>String(x.a.seccion)===extState.sec);
+  return conteoPorMateria(list);
+}
+function extFillMatSelector(){
+  const sel=document.getElementById("matFilterExt"); if(!sel)return;
+  const disp=extMateriasDisponibles();
+  const prev=extState.mat;
+  let html=`<option value="">Todas las materias</option>`;
+  disp.forEach(([m,c])=>{ html+=`<option value="${m}">${extMatLabel(m)} (${c})</option>`; });
+  if(prev && !disp.some(([m])=>m===prev)) html+=`<option value="${prev}">${extMatLabel(prev)} (0)</option>`;
+  sel.innerHTML=html;
+  sel.value=prev;
+}
+function extMatLabel(m){ return m===GEN_EXT?"extraordinario":(SHORT[m]||m); }
+function renderExt(){
+  extFillMatSelector();
+  const list=extFiltradas();
+  const total=list.length;
+  const secSet=new Set(list.map(x=>String(x.a.seccion)));
+  const globalCnt=conteoPorMateria(list);
+  const totalMat=globalCnt.reduce((s,[,c])=>s+c,0);
+  document.getElementById("extKpis").innerHTML=`
+    <div class="amo-kpi"><div class="n">${total}</div><div class="l">Aspirantes a extraordinario</div></div>
+    <div class="amo-kpi"><div class="n">${totalMat}</div><div class="l">Materias a rendir (total)</div></div>
+    <div class="amo-kpi"><div class="n">${secSet.size}</div><div class="l">Secciones involucradas</div></div>`;
+  document.getElementById("countExt").innerHTML=`Mostrando <b>${total}</b> ${total===1?"aspirante":"aspirantes"}`+
+    (globalCnt.length?` · ${globalCnt.map(([m,c])=>`${extMatLabel(m)}: <b>${c}</b>`).join(" · ")}`:"");
+  const cont=document.getElementById("extList");
+  if(!total){ cont.innerHTML=`<div class="amo-empty"><div class="big">📝</div>No hay aspirantes en examen extraordinario${extState.q||extState.sec?" con ese filtro":""}. Se detecta desde la nota de Examen Extraordinario o desde las observaciones (ej. "extraordinario de arma y tiro").</div>`; return; }
+  const secs=[...secSet].sort();
+  cont.innerHTML=secs.map(s=>{
+    const items=list.filter(x=>String(x.a.seccion)===s).sort((p,q2)=>p.a.nombre.localeCompare(q2.a.nombre));
+    const bd=conteoPorMateria(items);
+    const bdHtml=bd.map(([m,c])=>`<span class="sec-bd-chip">${extMatLabel(m)} <b>${c}</b></span>`).join("");
+    const cards=items.map(x=>{
+      const pills=x.mats.map(mm=>{
+        if(mm.origen==="nota"){ const val=(mm.nota!==null)?fmt1NoTag(mm.nota):escapeHtml(mm.raw||"");
+          return `<span class="inst2-pill ${inst2PillClass(mm.nota)}">${extMatLabel(mm.m)} <span class="n2">${val}</span></span>`; }
+        return `<span class="inst2-pill pill-obs">${extMatLabel(mm.m)} <span class="tag2">extraord.</span></span>`;
+      }).join("");
+      const obsTxt=(x.a.obs||"").trim();
+      const obsNote=obsTxt?`<div class="oi-obsnote">📝 ${escapeHtml(obsTxt)}</div>`:"";
+      return `<div class="obs-item">
+        <div class="oi-top"><div><div class="oi-name">${escapeHtml(x.a.nombre)}</div><div class="oi-dni mono">DNI ${x.a.dni||"—"}</div></div>
+        <span class="secbadge">S${s}</span></div>
+        <div class="inst2-mats">${pills}</div>${obsNote}</div>`;
+    }).join("");
+    return `<div class="sec-block"><div class="secgroup-ttl">Sección ${s}<span class="sec-count">${items.length} aspirante(s)</span></div><div class="sec-breakdown">${bdHtml}</div><div class="obs-list">${cards}</div></div>`;
+  }).join("");
+}
+function extNotaExport(mm){ if(mm.origen==="obs")return "Según observación"; return (mm.nota!==null?mm.nota:(mm.raw||"")); }
+function exportExtExcel(){
+  const list=extFiltradas();
+  if(!list.length){ toast("No hay aspirantes en extraordinario para exportar"); return; }
+  const rows=[];
+  list.slice().sort((p,q2)=>String(p.a.seccion).localeCompare(String(q2.a.seccion))||p.a.nombre.localeCompare(q2.a.nombre))
+    .forEach(x=>x.mats.forEach(mm=>rows.push({"Sección":x.a.seccion,"Aspirante":x.a.nombre,"DNI":x.a.dni||"","Materia":extMatLabel(mm.m),"Origen":mm.origen==="obs"?"Observación":"Nota Extraord.","Nota / Detalle":extNotaExport(mm),"Observación":(x.a.obs||"").trim()})));
+  const ws=XLSX.utils.json_to_sheet(rows); const wb=XLSX.utils.book_new();
+  const matSlug=extState.mat?"_"+inst2Norm(extMatLabel(extState.mat)).replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""):"";
+  const hoja=extState.mat?("Extraord "+extMatLabel(extState.mat)).slice(0,31):"Extraordinario";
+  XLSX.utils.book_append_sheet(wb,ws,hoja);
+  XLSX.writeFile(wb,"examen_extraordinario"+matSlug+"_"+new Date().toISOString().slice(0,10)+".xlsx");
+  toast("Excel descargado ✓");
+}
+function exportExtPDF(){
+  const list=extFiltradas();
+  if(!list.length){ toast("No hay aspirantes en extraordinario para exportar"); return; }
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:"landscape",unit:"pt",format:"a4"}); const W=doc.internal.pageSize.getWidth();
+  const globalCnt=conteoPorMateria(list);
+  const resumen=globalCnt.map(([m,c])=>`${extMatLabel(m)}: ${c}`).join("  ·  ");
+  const tituloMat=extState.mat?" · "+extMatLabel(extState.mat):"";
+  pdfHeader(doc,W,"Mesa Examen Extraordinario"+tituloMat+" · Aspirantes 2026",`${list.length} aspirante(s)${extState.sec?" · Sección "+extState.sec:" · Todas las secciones"}${extState.mat?" · Materia: "+extMatLabel(extState.mat):""}${resumen?"  ·  "+resumen:""}`);
+  const body=[];
+  list.slice().sort((p,q2)=>String(p.a.seccion).localeCompare(String(q2.a.seccion))||p.a.nombre.localeCompare(q2.a.nombre))
+    .forEach(x=>x.mats.forEach((mm,i)=>body.push([i===0?x.a.seccion:"",i===0?x.a.nombre:"",i===0?(x.a.dni||"—"):"",extMatLabel(mm.m),(mm.origen==="obs"?"s/ obs.":(mm.nota!==null?fmt1NoTag(mm.nota):(mm.raw||"")))])));
+  doc.autoTable({startY:68,head:[["Sec","Aspirante","DNI","Materia","Nota Extraord."]],body,theme:"striped",
+    headStyles:{fillColor:[158,27,44],fontSize:8.5},bodyStyles:{fontSize:8.5},
+    columnStyles:{0:{halign:"center",cellWidth:32},1:{cellWidth:190,fontStyle:"bold"},2:{cellWidth:80},3:{cellWidth:230},4:{halign:"center",cellWidth:90}}});
+  const matSlug=extState.mat?"_"+inst2Norm(extMatLabel(extState.mat)).replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""):"";
+  pdfWatermark(doc);doc.save("examen_extraordinario"+matSlug+"_"+new Date().toISOString().slice(0,10)+".pdf");
+  toast("PDF descargado ✓");
+}
+
 /* ===================== AMONESTACIONES ===================== */
 let aState={q:"",sec:""};
 function aspLabel(a){ return a.nombre+" — DNI "+(a.dni||"—"); }
@@ -1717,8 +1877,8 @@ function pdfDetalleAspirante(doc,a,subExtra){
     doc.setTextColor(122,20,32);doc.setFontSize(9);doc.setFont("helvetica","bold");
     doc.text(`Prom. Académico: ${fmt(an.pa)}    Prom. Operacional: ${fmt(an.po)}    Conducta: ${fmt(an.pco)}    Mérito: ${fmt(an.prom)}`,40,y); y+=8;
     const matRows=(bk,keys)=>keys.map(m=>{const mat=a[bk][m]||{};const r=an.rows.find(x=>x.block===bk&&x.m===m);
-      return [m,(typeof mat.n1==="number"?mat.n1:(mat.n1||"–")),mat.n2??"–",fmt1NoTag(r.pc),CON_FINAL.includes(m)?(mat.final??"–"):"—",CON_FINAL.includes(m)?(mat.final2??"–"):"—",fmt1NoTag(r.pf)];});
-    const sec=(title,body,startY)=>{ doc.autoTable({startY,head:[[title,"1ª","2ª","P.Curs.","Final","2da Inst.","P.Final"]],body,theme:"grid",
+      return [m,(typeof mat.n1==="number"?mat.n1:(mat.n1||"–")),mat.n2??"–",fmt1NoTag(r.pc),CON_FINAL.includes(m)?(mat.final??"–"):"—",CON_FINAL.includes(m)?(mat.final2??"–"):"—",CON_FINAL.includes(m)?(mat.final3??"–"):"—",fmt1NoTag(r.pf)];});
+    const sec=(title,body,startY)=>{ doc.autoTable({startY,head:[[title,"1ª","2ª","P.Curs.","Final","2da Inst.","Extraord.","P.Final"]],body,theme:"grid",
       headStyles:{fillColor:[158,27,44],fontSize:8},bodyStyles:{fontSize:8},columnStyles:{0:{cellWidth:150,halign:"left",fontStyle:"bold"}},styles:{halign:"center"},
       didParseCell:d=>colorMerito(d,6)}); return doc.lastAutoTable.finalY; };
     y=sec("MATERIAS ACADÉMICAS",matRows("academicas",ACAD),y+8);
@@ -1861,6 +2021,9 @@ document.getElementById("secFilterObs").addEventListener("change",e=>{obsState.s
 document.getElementById("qinst2").addEventListener("input",e=>{inst2State.q=e.target.value;renderInst2();});
 document.getElementById("secFilterInst2").addEventListener("change",e=>{inst2State.sec=e.target.value;inst2State.mat="";renderInst2();});
 document.getElementById("matFilterInst2").addEventListener("change",e=>{inst2State.mat=e.target.value;renderInst2();});
+document.getElementById("qext").addEventListener("input",e=>{extState.q=e.target.value;renderExt();});
+document.getElementById("secFilterExt").addEventListener("change",e=>{extState.sec=e.target.value;extState.mat="";renderExt();});
+document.getElementById("matFilterExt").addEventListener("change",e=>{extState.mat=e.target.value;renderExt();});
 
 /* ===================== AUTO-SESIÓN (al final, con todo definido) ===================== */
 (function(){ try{const s=JSON.parse(sessionStorage.getItem(SESSION_KEY)); if(s){ if(s.rol==="aspirante"&&s.dni){ startAspirante(s.dni); } else if(s.user){const u=USERS_DEFAULT.find(x=>x.user===s.user); if(u)startApp({rol:"admin",...u});} }}catch(e){} })();
