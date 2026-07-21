@@ -380,6 +380,7 @@ footer{text-align:center;padding:22px;font-size:11px;color:var(--muted);letter-s
   <button class="tab" data-tab="obs" onclick="switchTab('obs')">📝 Observaciones</button>
   <button class="tab" data-tab="inst2" onclick="switchTab('inst2')">📄 2da Instancia</button>
   <button class="tab" data-tab="ext" onclick="switchTab('ext')">📝 Mesa Examen Extraordinario</button>
+  <button class="tab" data-tab="riesgo" onclick="switchTab('riesgo')">🚨 En serio riesgo</button>
 </div>
 
 <div id="view-rend">
@@ -578,6 +579,22 @@ footer{text-align:center;padding:22px;font-size:11px;color:var(--muted);letter-s
   <div class="amo-kpis" id="extKpis"></div>
   <div class="count" id="countExt"></div>
   <div id="extList"></div>
+</div>
+</div>
+
+<div id="view-riesgo" style="display:none">
+<div class="controls">
+  <div class="spacer" style="flex:1"></div>
+  <button class="btn btn-ghost" onclick="exportRiesgoPDF()">⬇ PDF (todos)</button>
+  <button class="btn btn-gold" onclick="exportRiesgoExcel()">⬇ Excel</button>
+</div>
+<div class="wrap">
+  <div class="amo-formula">
+    <span class="mf-title">🚨 Aspirantes en serio riesgo</span>
+    <span class="mf-note">Listado aparte de los aspirantes marcados como en serio riesgo, agrupados por sección, con el detalle completo de su rendimiento académico (materias, promedios y finales).</span>
+  </div>
+  <div class="amo-kpis" id="riesgoKpis"></div>
+  <div id="riesgoList"></div>
 </div>
 </div>
 
@@ -783,7 +800,7 @@ function cloudSubscribe(){
             DATA = ordenarAspirantes(DATA);
           }
           try{ localStorage.setItem(DATA_KEY, JSON.stringify(DATA)); }catch(e){}
-          renderKpis(); render(); refreshMeritoIfOpen(); refreshPodioIfOpen(); refreshObsIfOpen(); refreshInst2IfOpen(); refreshExtIfOpen();
+          renderKpis(); render(); refreshMeritoIfOpen(); refreshPodioIfOpen(); refreshObsIfOpen(); refreshInst2IfOpen(); refreshExtIfOpen(); refreshRiesgoIfOpen();
         } else if(id.indexOf(AMO_PREFIX)===0){
           if(payload.eventType==="DELETE"){
             AMO = AMO.filter(r=>AMO_PREFIX+r.id!==id);
@@ -868,7 +885,7 @@ function startApp(u){
   if(initSupabase()){
     setSyncBadge("sync");
     cloudLoad().then(ok=>{
-      if(ok){ renderKpis(); render(); refreshMeritoIfOpen(); refreshPodioIfOpen(); refreshObsIfOpen(); refreshInst2IfOpen(); refreshExtIfOpen(); cloudSubscribe(); setSyncBadge("ok"); }
+      if(ok){ renderKpis(); render(); refreshMeritoIfOpen(); refreshPodioIfOpen(); refreshObsIfOpen(); refreshInst2IfOpen(); refreshExtIfOpen(); refreshRiesgoIfOpen(); cloudSubscribe(); setSyncBadge("ok"); }
       else { setSyncBadge("off"); }
     });
   } else { setSyncBadge("off"); }
@@ -1271,13 +1288,13 @@ function saveEdit(id,isNew){
     aspGuardado=a;
     toast("Cambios guardados ✓");
   }
-  saveData(); cloudPushAspirante(aspGuardado); renderKpis(); render(); refreshMeritoIfOpen(); refreshPodioIfOpen(); refreshObsIfOpen(); refreshInst2IfOpen(); refreshExtIfOpen(); closeModal();
+  saveData(); cloudPushAspirante(aspGuardado); renderKpis(); render(); refreshMeritoIfOpen(); refreshPodioIfOpen(); refreshObsIfOpen(); refreshInst2IfOpen(); refreshExtIfOpen(); refreshRiesgoIfOpen(); closeModal();
 }
 function newAspirante(){ openEdit("__new__"); }
 function delAspirante(id){
   const a=DATA.find(x=>x.id===id); if(!a)return;
   if(!confirm(`¿Eliminar a ${a.nombre}? Esta acción no se puede deshacer.`))return;
-  DATA=DATA.filter(x=>x.id!==id); saveData(); cloudDeleteAspirante(id); renderKpis(); render(); refreshMeritoIfOpen(); refreshPodioIfOpen(); refreshObsIfOpen(); refreshInst2IfOpen(); refreshExtIfOpen(); closeModal(); toast("Aspirante eliminado");
+  DATA=DATA.filter(x=>x.id!==id); saveData(); cloudDeleteAspirante(id); renderKpis(); render(); refreshMeritoIfOpen(); refreshPodioIfOpen(); refreshObsIfOpen(); refreshInst2IfOpen(); refreshExtIfOpen(); refreshRiesgoIfOpen(); closeModal(); toast("Aspirante eliminado");
 }
 
 /* ===================== MODAL HELPERS ===================== */
@@ -1341,18 +1358,21 @@ function switchTab(t){
   document.getElementById("view-obs").style.display=t==="obs"?"":"none";
   document.getElementById("view-inst2").style.display=t==="inst2"?"":"none";
   document.getElementById("view-ext").style.display=t==="ext"?"":"none";
+  document.getElementById("view-riesgo").style.display=t==="riesgo"?"":"none";
   if(t==="merito")renderMerito();
   if(t==="podio")renderPodio();
   if(t==="amo")renderAmo();
   if(t==="obs")renderObs();
   if(t==="inst2")renderInst2();
   if(t==="ext")renderExt();
+  if(t==="riesgo")renderRiesgo();
 }
 function refreshMeritoIfOpen(){ if(document.getElementById("view-merito").style.display!=="none")renderMerito(); }
 function refreshAmoIfOpen(){ const v=document.getElementById("view-amo"); if(v&&v.style.display!=="none")renderAmo(); }
 function refreshObsIfOpen(){ const v=document.getElementById("view-obs"); if(v&&v.style.display!=="none")renderObs(); }
 function refreshInst2IfOpen(){ const v=document.getElementById("view-inst2"); if(v&&v.style.display!=="none")renderInst2(); }
 function refreshExtIfOpen(){ const v=document.getElementById("view-ext"); if(v&&v.style.display!=="none")renderExt(); }
+function refreshRiesgoIfOpen(){ const v=document.getElementById("view-riesgo"); if(v&&v.style.display!=="none")renderRiesgo(); }
 
 /* ===================== OBSERVACIONES (por sección) ===================== */
 let obsState={q:"",sec:""};
@@ -1683,6 +1703,89 @@ function exportExtPDF(){
   const matSlug=extState.mat?"_"+inst2Norm(extMatLabel(extState.mat)).replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""):"";
   pdfWatermark(doc);doc.save("examen_extraordinario"+matSlug+"_"+new Date().toISOString().slice(0,10)+".pdf");
   toast("PDF descargado ✓");
+}
+
+/* ===================== EN SERIO RIESGO (lista fija por DNI) ===================== */
+/* Aspirantes marcados manualmente como en serio riesgo. Se fijan por DNI para que
+   la pestaña siempre muestre exactamente a estas personas aunque se editen datos. */
+const RIESGO_DNIS=["42604620","41774012","42658796","41590702","45375306","41438693","42175871","43215796"];
+function aspRiesgo(){
+  return RIESGO_DNIS.map(d=>DATA.find(a=>String(a.dni)===String(d))).filter(Boolean);
+}
+function riesgoTablaHTML(a,an,bk,keys){
+  return `<table class="ntab"><thead><tr>
+    <th class="mat">Materia</th><th>1ª Nota</th><th>2ª Nota</th><th>Prom. Cursada</th><th class="h-hide">Examen Final</th><th class="h-hide">2da Instancia</th><th class="h-hide">Extraord.</th><th>Prom. Final</th></tr></thead><tbody>`+
+    keys.map(m=>{ const r=an.rows.find(x=>x.block===bk&&x.m===m); const mat=r.mat; const hasFinal=CON_FINAL.includes(m);
+      const n1disp=(typeof mat.n1==="string")?`<span style="color:${mat.n1.toUpperCase().includes("DESAP")?"var(--crit)":"var(--ok)"};font-weight:700;font-size:11px">${mat.n1}</span>`:fmt1(mat.n1);
+      const n2disp=(typeof mat.n2==="string")?`<span style="color:${mat.n2.toUpperCase().includes("DESAP")?"var(--crit)":"var(--ok)"};font-weight:700;font-size:11px">${mat.n2}</span>`:fmt1(mat.n2);
+      return `<tr class="${r.estado}"><td class="mat">${m}${hasFinal?' <span style="color:var(--gold);font-size:9px;font-weight:800">●FINAL</span>':''}</td>
+        <td><span class="cell">${n1disp}</span></td><td><span class="cell">${n2disp}</span></td>
+        <td class="prom"><span class="cell">${fmt1(r.pc)}</span></td>
+        <td class="h-hide"><span class="cell">${hasFinal?fmt1(mat.final):'<span class="dash">—</span>'}</span></td>
+        <td class="h-hide"><span class="cell">${hasFinal?fmt1(mat.final2):'<span class="dash">—</span>'}</span></td>
+        <td class="h-hide"><span class="cell">${hasFinal?fmt1(mat.final3):'<span class="dash">—</span>'}</span></td>
+        <td class="prom"><span class="cell">${fmt1(r.pf)}</span></td></tr>`; }).join("")+`</tbody></table>`;
+}
+function renderRiesgo(){
+  const list=aspRiesgo();
+  const secSet=new Set(list.map(a=>String(a.seccion)));
+  document.getElementById("riesgoKpis").innerHTML=`
+    <div class="amo-kpi"><div class="n">${list.length}</div><div class="l">Aspirantes en serio riesgo</div></div>
+    <div class="amo-kpi"><div class="n">${secSet.size}</div><div class="l">Secciones involucradas</div></div>`;
+  const cont=document.getElementById("riesgoList");
+  if(!list.length){ cont.innerHTML=`<div class="amo-empty"><div class="big">🚨</div>No se encontraron los aspirantes marcados. Verificá que sigan cargados.</div>`; return; }
+  const secs=[...secSet].sort();
+  cont.innerHTML=secs.map(s=>{
+    const items=list.filter(a=>String(a.seccion)===s).sort((p,q)=>p.nombre.localeCompare(q.nombre));
+    const cards=items.map(a=>{
+      const an=analizar(a);
+      const condR=an.rows.find(x=>x.block==="conducta");
+      const condTab=`<table class="ntab"><thead><tr><th class="mat">Conducta</th><th>1ª Nota</th><th>2ª Nota</th><th>Promedio</th></tr></thead><tbody>
+        <tr class="${condR.estado}"><td class="mat">CONDUCTA</td><td><span class="cell">${fmt1(condR.mat.n1)}</span></td>
+        <td><span class="cell">${(typeof condR.mat.n2==="string")?`<span style="color:${condR.mat.n2.toUpperCase().includes("DESAP")?"var(--crit)":"var(--ok)"};font-weight:700;font-size:11px">${condR.mat.n2}</span>`:fmt1(condR.mat.n2)}</span></td><td class="prom"><span class="cell">${fmt1(condR.pf)}</span></td></tr></tbody></table>`;
+      return `<div class="asp-card" style="margin-bottom:16px">
+        <div class="asp-head">
+          <div><div class="asp-name">${escapeHtml(a.nombre)}</div><div class="asp-meta">Sección ${a.seccion} · DNI ${a.dni||"—"}</div></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost" onclick="openView('${a.id}')">Ver ficha</button>
+            <button class="btn btn-gold" onclick="exportPDF('${a.id}')">⬇ PDF</button>
+          </div>
+        </div>
+        <div class="mstats" style="border-radius:12px;overflow:hidden;margin-bottom:14px">
+          <div class="mstat"><div class="v">${fmt(an.pa)}</div><div class="k">Prom. Acad.</div></div>
+          <div class="mstat"><div class="v">${fmt(an.po)}</div><div class="k">Prom. Oper.</div></div>
+          <div class="mstat"><div class="v">${fmt(an.pco)}</div><div class="k">Conducta</div></div>
+          <div class="mstat"><div class="v" style="color:var(--gold)">${fmt(an.prom)}</div><div class="k">Mérito</div></div>
+        </div>
+        <div class="secttl">Materias Académicas <span class="pp mono">${fmt(an.pa)}</span></div>${riesgoTablaHTML(a,an,"academicas",ACAD)}
+        <div class="secttl">Materias Operacionales <span class="pp mono">${fmt(an.po)}</span></div>${riesgoTablaHTML(a,an,"operacionales",OPER)}
+        <div class="secttl">Conducta <span class="pp mono">${fmt(an.pco)}</span></div>${condTab}${condIncidenciasHTML(a.id)}
+      </div>`;
+    }).join("");
+    return `<div class="sec-block"><div class="secgroup-ttl">Sección ${s}<span class="sec-count">${items.length} aspirante(s)</span></div>${cards}</div>`;
+  }).join("");
+}
+function exportRiesgoPDF(){
+  const list=aspRiesgo();
+  if(!list.length){ toast("No hay aspirantes en la lista"); return; }
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:"portrait",unit:"pt",format:"a4"});
+  list.slice().sort((p,q)=>String(p.seccion).localeCompare(String(q.seccion))||p.nombre.localeCompare(q.nombre))
+    .forEach((a,i)=>{ if(i>0)doc.addPage(); pdfDetalleAspirante(doc,a,"EN SERIO RIESGO"); pdfWatermark(doc); });
+  doc.save("en_serio_riesgo_"+new Date().toISOString().slice(0,10)+".pdf");
+  toast("PDF descargado ✓");
+}
+function exportRiesgoExcel(){
+  const list=aspRiesgo();
+  if(!list.length){ toast("No hay aspirantes en la lista"); return; }
+  const rows=list.slice().sort((p,q)=>String(p.seccion).localeCompare(String(q.seccion))||p.nombre.localeCompare(q.nombre))
+    .map(a=>{ const an=analizar(a);
+      const enRiesgo=an.rows.filter(r=>r.estado==="crit"||r.estado==="warn").map(r=>`${SHORT[r.m]||r.m} ${(typeof r.pf==="number")?fmt1NoTag(r.pf):(typeof r.mat.n1==="string"&&r.mat.n1.toUpperCase().includes("DESAP")?"Desaprob.":"–")}`).join(", ");
+      return {"Sección":a.seccion,"Aspirante":a.nombre,"DNI":a.dni||"","Prom. Académico":fmt(an.pa),"Prom. Operacional":fmt(an.po),"Conducta":fmt(an.pco),"Mérito":fmt(an.prom),"Materias en riesgo":enRiesgo||"—"}; });
+  const ws=XLSX.utils.json_to_sheet(rows); const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"En serio riesgo");
+  XLSX.writeFile(wb,"en_serio_riesgo_"+new Date().toISOString().slice(0,10)+".xlsx");
+  toast("Excel descargado ✓");
 }
 
 /* ===================== AMONESTACIONES ===================== */
