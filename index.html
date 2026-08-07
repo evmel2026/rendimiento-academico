@@ -1142,9 +1142,9 @@ function startApp(u){
     cloudLoad().then(ok=>{
       if(ok){ fillSecSelects(); updateConvUI(); renderKpis(); render(); refreshMeritoIfOpen(); refreshPodioIfOpen(); refreshObsIfOpen(); refreshInst2IfOpen(); refreshExtIfOpen(); cloudSubscribe(); setSyncBadge("ok"); }
       else { setSyncBadge("off"); }
-      sembrarC2().then(hubo=>{ if(hubo){ fillSecSelects(); updateConvUI(); renderKpis(); render(); toast("Padrón de la 2da convocatoria cargado ✓"); } });
+      sincronizarC2().then(hubo=>{ if(hubo){ fillSecSelects(); updateConvUI(); renderKpis(); render(); toast("2da Convocatoria: padrón y secciones al día ✓"); } });
     });
-  } else { setSyncBadge("off"); sembrarC2().then(hubo=>{ if(hubo){ fillSecSelects(); updateConvUI(); renderKpis(); render(); } }); }
+  } else { setSyncBadge("off"); sincronizarC2().then(hubo=>{ if(hubo){ fillSecSelects(); updateConvUI(); renderKpis(); render(); } }); }
 }
 function setSyncBadge(state, detail){
   const el=document.getElementById("syncBadge"); if(!el)return;
@@ -1562,173 +1562,174 @@ function delAspirante(id){
 
 
 /* ===================== PADRÓN 2da CONVOCATORIA =====================
-   Listado oficial de 156 aspirantes (apellido y nombre completos + DNI).
-   Entran SIN sección: se asignan a mano desde «🧩 Asignar secciones».
+   Listado oficial de aspirantes (apellido y nombre completos + DNI + sección).
+   Los 155 con sección designada entran ya ubicados; el que no tiene `s`
+   queda «Sin asignar» y se resuelve desde «🧩 Asignar secciones».
    La siembra corre UNA sola vez y deja una marca en la nube, así que
    nunca duplica ni revive a alguien dado de baja.                    */
 const C2_FLAG_ID="rend_c2_seed_done";
 const C2_FLAG_KEY="rendv3_c2_seed";
 const SEED_C2=[
-{n:"ABURTO JONATHAN LEANDRO",d:"40614265"},
-{n:"ACUÑA GABRIEL VALENTIN",d:"46611348"},
-{n:"ACUÑA LAUMANN JOEL ALEXANDER",d:"46536939"},
-{n:"ACUÑA OPORTO BELEN ABIGAIL",d:"44825026"},
-{n:"AGUILAR RUT ELIZABET",d:"40443079"},
-{n:"AGUILERA SANDOVAL JAZMIN ANDREA",d:"48268749"},
-{n:"ALBORNOZ FLORENCIA ITATI",d:"42654325"},
-{n:"ALVEAR ESTEFANIA MARIA DE LOS ANGELES",d:"43760240"},
-{n:"AMAYA MARTIN FABRICIO",d:"45767253"},
-{n:"ANDREIS COSCARARTE YASMINA AGUSTINA",d:"43422399"},
-{n:"ANDRINI LAURA AYELEN",d:"46252741"},
-{n:"ANTIÑIR JUAN FRANCO",d:"42710127"},
-{n:"ANTIQUEO LUCIANO THAIEL",d:"43372613"},
-{n:"AVALOS JONATHAN ARIEL",d:"43400785"},
-{n:"AVILA ALEXIS GABRIEL",d:"45142102"},
-{n:"AVILES KIARA AYELEN",d:"47148540"},
-{n:"BAIGORRIA LEANDRO WALTER",d:"46257507"},
-{n:"BARGAS SANCHEZ JAZMIN MORENA",d:"48015554"},
-{n:"BARRIENTOS RODRIGO GERMAN",d:"42067783"},
-{n:"BEJARANO ARIEL ALEXANDER",d:"44924490"},
-{n:"BELARDE TIARA NAHIR",d:"48144573"},
-{n:"BELLO CAMILA ROCIO",d:"45258628"},
-{n:"BELTRAN DAIANA ZULEMA",d:"44015521"},
-{n:"BELTRAN URIEL FABRICIO",d:"43834394"},
-{n:"BOBADILLA RAMON RICARDO RUBEN",d:"45259367"},
-{n:"BUSTOS FRANK WILLIAMS",d:"47590085"},
-{n:"BUYONES PEDRO NICOLAS",d:"40442712"},
-{n:"CAITRUZ MARINA ANTONELLA",d:"45602662"},
+{n:"ABURTO JONATHAN LEANDRO",d:"40614265",s:"1"},
+{n:"ACUÑA GABRIEL VALENTIN",d:"46611348",s:"1"},
+{n:"ACUÑA LAUMANN JOEL ALEXANDER",d:"46536939",s:"2"},
+{n:"ACUÑA OPORTO BELEN ABIGAIL",d:"44825026",s:"2"},
+{n:"AGUILAR RUT ELIZABET",d:"40443079",s:"3"},
+{n:"AGUILERA SANDOVAL JAZMIN ANDREA",d:"48268749",s:"3"},
+{n:"ALBORNOZ FLORENCIA ITATI",d:"42654325",s:"4"},
+{n:"ALVEAR ESTEFANIA MARIA DE LOS ANGELES",d:"43760240",s:"4"},
+{n:"AMAYA MARTIN FABRICIO",d:"45767253",s:"5"},
+{n:"ANDREIS COSCARARTE YASMINA AGUSTINA",d:"43422399",s:"5"},
+{n:"ANDRINI LAURA AYELEN",d:"46252741",s:"1"},
+{n:"ANTIÑIR JUAN FRANCO",d:"42710127",s:"2"},
+{n:"ANTIQUEO LUCIANO THAIEL",d:"43372613",s:"3"},
+{n:"AVALOS JONATHAN ARIEL",d:"43400785",s:"4"},
+{n:"AVILA ALEXIS GABRIEL",d:"45142102",s:"5"},
+{n:"AVILES KIARA AYELEN",d:"47148540",s:"5"},
+{n:"BAIGORRIA LEANDRO WALTER",d:"46257507",s:"1"},
+{n:"BARGAS SANCHEZ JAZMIN MORENA",d:"48015554",s:"1"},
+{n:"BARRIENTOS RODRIGO GERMAN",d:"42067783",s:"2"},
+{n:"BEJARANO ARIEL ALEXANDER",d:"44924490",s:"2"},
+{n:"BELARDE TIARA NAHIR",d:"48144573",s:"3"},
+{n:"BELLO CAMILA ROCIO",d:"45258628",s:"3"},
+{n:"BELTRAN DAIANA ZULEMA",d:"44015521",s:"4"},
+{n:"BELTRAN URIEL FABRICIO",d:"43834394",s:"4"},
+{n:"BOBADILLA RAMON RICARDO RUBEN",d:"45259367",s:"5"},
+{n:"BUSTOS FRANK WILLIAMS",d:"47590085",s:"5"},
+{n:"BUYONES PEDRO NICOLAS",d:"40442712",s:"1"},
+{n:"CAITRUZ MARINA ANTONELLA",d:"45602662",s:"1"},
 {n:"CAMPOS JUAN EMANUEL",d:"41706923"},
-{n:"CANTILLANA LEONEL IVAN",d:"42105434"},
-{n:"CARRIZO DALMA ELIZABETH",d:"40293809"},
-{n:"CASTILLO AILEN GLADYS MARIA",d:"45883259"},
-{n:"CASTILLO JUAN GABRIEL",d:"48748501"},
-{n:"CATALAN FLAVIA ANDREA",d:"40443748"},
-{n:"CATILAO JOSE RICHARD SANTIAGO",d:"44103306"},
-{n:"CATILAO NAIR YOHANA JUDIT",d:"42910403"},
-{n:"CAVIERES FERNANDO NICOLAS",d:"42806832"},
-{n:"CAZON ROCIO DEL ROSARIO",d:"42034551"},
-{n:"CENTURION MARCO GASTON",d:"41840556"},
-{n:"CHEUQUEL FACUNDO ERNESTO",d:"45733125"},
-{n:"CIFUENTES JOEL",d:"46724103"},
-{n:"COLIHUINCA DAIANA",d:"43947396"},
-{n:"COLMAN TILLERIA MELISA CAROLINA",d:"41539434"},
-{n:"COLQUE GABRIEL HERNAN",d:"45275258"},
-{n:"CONTRERAS KEVIN EMANUEL RAUL",d:"43834909"},
-{n:"CONTRERAS SERGIO RUFINO",d:"44481819"},
-{n:"CRISOSTOMO ANGEL ARIEL",d:"41437901"},
-{n:"CUEVAS JOAQUIN FELIX",d:"41706972"},
-{n:"CURRUMIL RAMIRO OMAR",d:"40614015"},
-{n:"DETZEL MENDEZ ZOE LUJAN",d:"47929697"},
-{n:"DUARTE LAUTARO NICOLAS",d:"48266970"},
-{n:"DUMIGUAL ROCIO CELESTE",d:"44481318"},
-{n:"ELIAS FABRIZIO MARTIN",d:"41362076"},
-{n:"ENCINA DANIELA AYELEN",d:"44014330"},
-{n:"ESPINOZA GILDA NATALIA",d:"42317871"},
-{n:"ESPINOZA YAMIL NAZARENO",d:"48207485"},
-{n:"FECHA FERNANDO RAFAEL",d:"45332235"},
-{n:"FERNANDEZ YAMIL EZEQUIEL",d:"45258916"},
-{n:"FLORES KARLA BARBARA SOLANGE",d:"43358779"},
-{n:"FUENTEALBA SANTIAGO ROBERTO",d:"45260274"},
-{n:"FUENTES DAISI AILIN",d:"41348276"},
-{n:"GARRIDO ANA CAMILA",d:"48207479"},
-{n:"GATICA ALEX JUAN ANDRE",d:"46329212"},
-{n:"GOMEZ NESTOR FABIAN",d:"44779710"},
-{n:"GONZALEZ AYARA FABIANA",d:"45960903"},
-{n:"GONZALEZ CELESTE SOLANGE",d:"48544281"},
-{n:"GONZALEZ MACARENA ELIZABETH",d:"40183148"},
-{n:"GONZALEZ MARTA YANINA",d:"43168714"},
-{n:"GONZALEZ REGUERA CAMILA AILEN",d:"41438987"},
-{n:"GONZALEZ ROMINA ABIGAIL",d:"47590985"},
-{n:"GUYAQUIMIL MERCEDES ROCIO",d:"44237574"},
-{n:"HUEMIL ULISE ENRIQUE ELEAZAR",d:"41347385"},
-{n:"HUILLICAL MILAGROS ANTONELLA",d:"44909726"},
-{n:"IRAL EDGARDO MISAEL",d:"47284983"},
-{n:"JARA FEDERICO SAMUEL",d:"44311685"},
-{n:"JARA TOMAS AGUSTIN",d:"46930601"},
-{n:"JOFRE OLIVA AZUL MALENA",d:"47721857"},
-{n:"KOPRIVA IVANA MARISOL",d:"45816699"},
-{n:"LEIVA CRISTIAN GABRIEL",d:"44118577"},
-{n:"LEIVA ENZO GUSTAVO",d:"44604786"},
-{n:"LEON SAMUEL JEREMIAS",d:"46069562"},
-{n:"LEZCANO IARA DAFNE",d:"43131650"},
-{n:"LIZAMA ALESSANDRO BENJAMIN",d:"43130935"},
-{n:"LUCERO LUZ BELEN",d:"43759920"},
-{n:"MANSILLA MAYCO ERNESTO",d:"41347366"},
-{n:"MARDONES CARRASCO YAMNA ABIGAIL",d:"45979934"},
-{n:"MARIÑANCO HERNAN FERNANDO",d:"44909259"},
-{n:"MARTINEZ GABRIEL ESTEBAN",d:"44311951"},
-{n:"MARTINEZ MORENA AYLIN",d:"48488187"},
-{n:"MATUS SOFIA AYELEN",d:"43372278"},
-{n:"MAUBECIN ANGELES YAEL",d:"43338927"},
-{n:"MENA PINO TOMAS ORIEL",d:"45028491"},
-{n:"MILLAR ANGELA ROCIO",d:"47049500"},
-{n:"MORALES JUAN LEONEL",d:"43553116"},
-{n:"MORALES PAULA MAISA",d:"45471048"},
-{n:"MORENO ORTEGA MICAELA",d:"46612501"},
-{n:"MOSCOSO ANA BELEN",d:"42806040"},
-{n:"MUÑOZ BRIAN ALEJANDRO",d:"41124154"},
-{n:"NAMUNCURA FACUNDO ISAIAS",d:"43703040"},
-{n:"NUÑEZ, AGUSTIN",d:"42702958"},
-{n:"ÑANCO CAMILA AILIN",d:"40182974"},
-{n:"ÑEHUEN MIGUEL ANGEL",d:"40440144"},
-{n:"OLAVE JOSÉ ALEJANDRO",d:"48731233"},
-{n:"OLIMA MARIA DE LOS MILAGROS",d:"42815849"},
-{n:"PALACIOS AGUSTIN EXEQUIEL",d:"42518441"},
-{n:"PALAVECINO SANTIAGO JOAQUIN",d:"44825898"},
-{n:"PAREDEZ MARCOS ANTONIO",d:"41606863"},
-{n:"PARRA BRAIAN FACUNDO",d:"45028198"},
-{n:"PARRA FRANCO DAIAN",d:"47590940"},
-{n:"PEREZ SEBASTIAN ADRIAN",d:"40960454"},
-{n:"PEREZ VERONICA MARISOL",d:"41837874"},
-{n:"PILQUIMAN FRANCO JOSE",d:"41232139"},
-{n:"PINO SALDIA ERIKA NICOLE",d:"41911881"},
-{n:"RAIGUAN SAMUEL DELMIRO",d:"41050110"},
-{n:"RAMIREZ EMILIANO BENJAMIN",d:"47661695"},
-{n:"RAMIREZ MATIAS NICOLAS",d:"40912160"},
-{n:"RAMOS AGUSTINA JANET",d:"45362124"},
-{n:"RINGLER VALENTINA DAFNE",d:"48488866"},
-{n:"RIVAS ROCIO LUJAN",d:"44684980"},
-{n:"ROBLES VALLEJOS NOELIA MICAELA",d:"44325139"},
-{n:"RODRIGUEZ CAMILA AGUSTINA",d:"48207476"},
-{n:"ROJAS CLARISA",d:"47438715"},
-{n:"ROLDAN LEFIN GUADALUPE DE LOS ANGELES",d:"47369576"},
-{n:"ROMERO CARLOS NICOLAS",d:"45561351"},
-{n:"ROMERO GASTON EZEQUIEL",d:"42709958"},
-{n:"ROMERO GUILLERMO TIZIANO EZEQUIEL",d:"45374941"},
-{n:"RUBILAR TAPIA LAURA AZUCENA",d:"45028218"},
-{n:"RUIZ TATIANA NATALI DEL VALLE",d:"43639901"},
-{n:"RUSSO FEDERICO AGUSTIN",d:"41645139"},
-{n:"SALVO IVAN MARIANO",d:"44684957"},
-{n:"SANCHEZ NATALIA DANIELA",d:"45509724"},
-{n:"SANDOVAL BRANDON AGUSTIN",d:"45733557"},
-{n:"SARABIA AGUSTIN EXEQUIEL",d:"44570182"},
-{n:"SEPULVEDA IARA AYLEN",d:"45887577"},
-{n:"SEPULVEDA MAYRA ABIGAIL",d:"45471410"},
-{n:"SEPULVEDA MELANIE ROCIO",d:"45211633"},
-{n:"SOTO ANA CLARA",d:"45602082"},
-{n:"SOTO JUAN GABRIEL",d:"42165985"},
-{n:"SOTO LUCAS GABRIEL",d:"47211758"},
-{n:"SUBELZA FEDERICO DANILO",d:"45182847"},
-{n:"TORRES CORONADO AGUSTIN ALESANDRO",d:"42652440"},
-{n:"TRONCOSO DIEGO SEBASTIAN",d:"41050056"},
-{n:"URIBE ERICK EMILIANO",d:"43156041"},
-{n:"URRUTIA MAIA CLARIBEL",d:"40293782"},
-{n:"URZAGASTE JAVIER NESTOR",d:"42607070"},
-{n:"VAZQUEZ JOAQUIN MAXIMILIANO",d:"46404290"},
-{n:"VEGA SOFIA MAYLEN",d:"44605373"},
-{n:"VELAZQUEZ MAILEN ABIGAIL",d:"46611100"},
-{n:"VELAZQUEZ SOL AILEN",d:"47914589"},
-{n:"VIDAL TAGINA EROS ERNESTO",d:"40613263"},
-{n:"VILLANUEVA BURGOS NAILA SHARON",d:"48207351"},
-{n:"VINET CAMILA ALDANA",d:"42104802"},
-{n:"WEISS MAURICIO DAMIAN",d:"44278183"},
-{n:"YAÑEZ LEONEL FERNANDO",d:"42968654"},
-{n:"ZAMORANO ALVAREZ LUZ QUIMEY",d:"46069096"},
-{n:"ZUÑIGA GONZALEZ ENZO EXEQUIEL",d:"45142517"}
+{n:"CANTILLANA LEONEL IVAN",d:"42105434",s:"2"},
+{n:"CARRIZO DALMA ELIZABETH",d:"40293809",s:"2"},
+{n:"CASTILLO AILEN GLADYS MARIA",d:"45883259",s:"3"},
+{n:"CASTILLO JUAN GABRIEL",d:"48748501",s:"3"},
+{n:"CATALAN FLAVIA ANDREA",d:"40443748",s:"4"},
+{n:"CATILAO JOSE RICHARD SANTIAGO",d:"44103306",s:"4"},
+{n:"CATILAO NAIR YOHANA JUDIT",d:"42910403",s:"5"},
+{n:"CAVIERES FERNANDO NICOLAS",d:"42806832",s:"5"},
+{n:"CAZON ROCIO DEL ROSARIO",d:"42034551",s:"1"},
+{n:"CENTURION MARCO GASTON",d:"41840556",s:"1"},
+{n:"CHEUQUEL FACUNDO ERNESTO",d:"45733125",s:"2"},
+{n:"CIFUENTES JOEL",d:"46724103",s:"2"},
+{n:"COLIHUINCA DAIANA",d:"43947396",s:"3"},
+{n:"COLMAN TILLERIA MELISA CAROLINA",d:"41539434",s:"3"},
+{n:"COLQUE GABRIEL HERNAN",d:"45275258",s:"4"},
+{n:"CONTRERAS KEVIN EMANUEL RAUL",d:"43834909",s:"4"},
+{n:"CONTRERAS SERGIO RUFINO",d:"44481819",s:"5"},
+{n:"CRISOSTOMO ANGEL ARIEL",d:"41437901",s:"5"},
+{n:"CUEVAS JOAQUIN FELIX",d:"41706972",s:"1"},
+{n:"CURRUMIL RAMIRO OMAR",d:"40614015",s:"1"},
+{n:"DETZEL MENDEZ ZOE LUJAN",d:"47929697",s:"2"},
+{n:"DUARTE LAUTARO NICOLAS",d:"48266970",s:"2"},
+{n:"DUMIGUAL ROCIO CELESTE",d:"44481318",s:"3"},
+{n:"ELIAS FABRIZIO MARTIN",d:"41362076",s:"3"},
+{n:"ENCINA DANIELA AYELEN",d:"44014330",s:"4"},
+{n:"ESPINOZA GILDA NATALIA",d:"42317871",s:"4"},
+{n:"ESPINOZA YAMIL NAZARENO",d:"48207485",s:"5"},
+{n:"FECHA FERNANDO RAFAEL",d:"45332235",s:"5"},
+{n:"FERNANDEZ YAMIL EZEQUIEL",d:"45258916",s:"1"},
+{n:"FLORES KARLA BARBARA SOLANGE",d:"43358779",s:"1"},
+{n:"FUENTEALBA SANTIAGO ROBERTO",d:"45260274",s:"2"},
+{n:"FUENTES DAISI AILIN",d:"41348276",s:"2"},
+{n:"GARRIDO ANA CAMILA",d:"48207479",s:"3"},
+{n:"GATICA ALEX JUAN ANDRE",d:"46329212",s:"3"},
+{n:"GOMEZ NESTOR FABIAN",d:"44779710",s:"4"},
+{n:"GONZALEZ AYARA FABIANA",d:"45960903",s:"4"},
+{n:"GONZALEZ CELESTE SOLANGE",d:"48544281",s:"5"},
+{n:"GONZALEZ MACARENA ELIZABETH",d:"40183148",s:"5"},
+{n:"GONZALEZ MARTA YANINA",d:"43168714",s:"1"},
+{n:"GONZALEZ REGUERA CAMILA AILEN",d:"41438987",s:"1"},
+{n:"GONZALEZ ROMINA ABIGAIL",d:"47590985",s:"2"},
+{n:"GUYAQUIMIL MERCEDES ROCIO",d:"44237574",s:"2"},
+{n:"HUEMIL ULISE ENRIQUE ELEAZAR",d:"41347385",s:"3"},
+{n:"HUILLICAL MILAGROS ANTONELLA",d:"44909726",s:"3"},
+{n:"IRAL EDGARDO MISAEL",d:"47284983",s:"4"},
+{n:"JARA FEDERICO SAMUEL",d:"44311685",s:"4"},
+{n:"JARA TOMAS AGUSTIN",d:"46930601",s:"5"},
+{n:"JOFRE OLIVA AZUL MALENA",d:"47721857",s:"5"},
+{n:"KOPRIVA IVANA MARISOL",d:"45816699",s:"1"},
+{n:"LEIVA CRISTIAN GABRIEL",d:"44118577",s:"1"},
+{n:"LEIVA ENZO GUSTAVO",d:"44604786",s:"2"},
+{n:"LEON SAMUEL JEREMIAS",d:"46069562",s:"2"},
+{n:"LEZCANO IARA DAFNE",d:"43131650",s:"3"},
+{n:"LIZAMA ALESSANDRO BENJAMIN",d:"43130935",s:"3"},
+{n:"LUCERO LUZ BELEN",d:"43759920",s:"4"},
+{n:"MANSILLA MAYCO ERNESTO",d:"41347366",s:"4"},
+{n:"MARDONES CARRASCO YAMNA ABIGAIL",d:"45979934",s:"5"},
+{n:"MARIÑANCO HERNAN FERNANDO",d:"44909259",s:"5"},
+{n:"MARTINEZ GABRIEL ESTEBAN",d:"44311951",s:"1"},
+{n:"MARTINEZ MORENA AYLIN",d:"48488187",s:"1"},
+{n:"MATUS SOFIA AYELEN",d:"43372278",s:"2"},
+{n:"MAUBECIN ANGELES YAEL",d:"43338927",s:"2"},
+{n:"MENA PINO TOMAS ORIEL",d:"45028491",s:"3"},
+{n:"MILLAR ANGELA ROCIO",d:"47049500",s:"3"},
+{n:"MORALES JUAN LEONEL",d:"43553116",s:"4"},
+{n:"MORALES PAULA MAISA",d:"45471048",s:"4"},
+{n:"MORENO ORTEGA MICAELA",d:"46612501",s:"5"},
+{n:"MOSCOSO ANA BELEN",d:"42806040",s:"5"},
+{n:"MUÑOZ BRIAN ALEJANDRO",d:"41124154",s:"1"},
+{n:"NAMUNCURA FACUNDO ISAIAS",d:"43703040",s:"1"},
+{n:"NUÑEZ, AGUSTIN",d:"42702958",s:"2"},
+{n:"ÑANCO CAMILA AILIN",d:"40182974",s:"2"},
+{n:"ÑEHUEN MIGUEL ANGEL",d:"40440144",s:"3"},
+{n:"OLAVE JOSÉ ALEJANDRO",d:"48731233",s:"3"},
+{n:"OLIMA MARIA DE LOS MILAGROS",d:"42815849",s:"4"},
+{n:"PALACIOS AGUSTIN EXEQUIEL",d:"42518441",s:"4"},
+{n:"PALAVECINO SANTIAGO JOAQUIN",d:"44825898",s:"5"},
+{n:"PAREDEZ MARCOS ANTONIO",d:"41606863",s:"5"},
+{n:"PARRA BRAIAN FACUNDO",d:"45028198",s:"1"},
+{n:"PARRA FRANCO DAIAN",d:"47590940",s:"1"},
+{n:"PEREZ SEBASTIAN ADRIAN",d:"40960454",s:"2"},
+{n:"PEREZ VERONICA MARISOL",d:"41837874",s:"2"},
+{n:"PILQUIMAN FRANCO JOSE",d:"41232139",s:"3"},
+{n:"PINO SALDIA ERIKA NICOLE",d:"41911881",s:"3"},
+{n:"RAIGUAN SAMUEL DELMIRO",d:"41050110",s:"4"},
+{n:"RAMIREZ EMILIANO BENJAMIN",d:"47661695",s:"4"},
+{n:"RAMIREZ MATIAS NICOLAS",d:"40912160",s:"5"},
+{n:"RAMOS AGUSTINA JANET",d:"45362124",s:"5"},
+{n:"RINGLER VALENTINA DAFNE",d:"48488866",s:"1"},
+{n:"RIVAS ROCIO LUJAN",d:"44684980",s:"1"},
+{n:"ROBLES VALLEJOS NOELIA MICAELA",d:"44325139",s:"2"},
+{n:"RODRIGUEZ CAMILA AGUSTINA",d:"48207476",s:"2"},
+{n:"ROJAS CLARISA",d:"47438715",s:"3"},
+{n:"ROLDAN LEFIN GUADALUPE DE LOS ANGELES",d:"47369576",s:"3"},
+{n:"ROMERO CARLOS NICOLAS",d:"45561351",s:"4"},
+{n:"ROMERO GASTON EZEQUIEL",d:"42709958",s:"4"},
+{n:"ROMERO GUILLERMO TIZIANO EZEQUIEL",d:"45374941",s:"5"},
+{n:"RUBILAR TAPIA LAURA AZUCENA",d:"45028218",s:"5"},
+{n:"RUIZ TATIANA NATALI DEL VALLE",d:"43639901",s:"1"},
+{n:"RUSSO FEDERICO AGUSTIN",d:"41645139",s:"1"},
+{n:"SALVO IVAN MARIANO",d:"44684957",s:"2"},
+{n:"SANCHEZ NATALIA DANIELA",d:"45509724",s:"2"},
+{n:"SANDOVAL BRANDON AGUSTIN",d:"45733557",s:"3"},
+{n:"SARABIA AGUSTIN EXEQUIEL",d:"44570182",s:"3"},
+{n:"SEPULVEDA IARA AYLEN",d:"45887577",s:"4"},
+{n:"SEPULVEDA MAYRA ABIGAIL",d:"45471410",s:"4"},
+{n:"SEPULVEDA MELANIE ROCIO",d:"45211633",s:"5"},
+{n:"SOTO ANA CLARA",d:"45602082",s:"5"},
+{n:"SOTO JUAN GABRIEL",d:"42165985",s:"1"},
+{n:"SOTO LUCAS GABRIEL",d:"47211758",s:"1"},
+{n:"SUBELZA FEDERICO DANILO",d:"45182847",s:"2"},
+{n:"TORRES CORONADO AGUSTIN ALESANDRO",d:"42652440",s:"2"},
+{n:"TRONCOSO DIEGO SEBASTIAN",d:"41050056",s:"3"},
+{n:"URIBE ERICK EMILIANO",d:"43156041",s:"3"},
+{n:"URRUTIA MAIA CLARIBEL",d:"40293782",s:"4"},
+{n:"URZAGASTE JAVIER NESTOR",d:"42607070",s:"4"},
+{n:"VAZQUEZ JOAQUIN MAXIMILIANO",d:"46404290",s:"5"},
+{n:"VEGA SOFIA MAYLEN",d:"44605373",s:"5"},
+{n:"VELAZQUEZ MAILEN ABIGAIL",d:"46611100",s:"1"},
+{n:"VELAZQUEZ SOL AILEN",d:"47914589",s:"1"},
+{n:"VIDAL TAGINA EROS ERNESTO",d:"40613263",s:"2"},
+{n:"VILLANUEVA BURGOS NAILA SHARON",d:"48207351",s:"2"},
+{n:"VINET CAMILA ALDANA",d:"42104802",s:"3"},
+{n:"WEISS MAURICIO DAMIAN",d:"44278183",s:"3"},
+{n:"YAÑEZ LEONEL FERNANDO",d:"42968654",s:"4"},
+{n:"ZAMORANO ALVAREZ LUZ QUIMEY",d:"46069096",s:"4"},
+{n:"ZUÑIGA GONZALEZ ENZO EXEQUIEL",d:"45142517",s:"5"}
 ];
 function aspiranteC2(o){
   const b=blankAspirante();
-  b.id="c2_"+o.d; b.conv=2; b.dni=o.d; b.nombre=o.n; b.seccion="";
+  b.id="c2_"+o.d; b.conv=2; b.dni=o.d; b.nombre=o.n; b.seccion=o.s?String(o.s):"";
   return b;
 }
 async function sembrarC2(){
@@ -1748,6 +1749,44 @@ async function sembrarC2(){
     if(sb){ try{ await upsertRow(C2_FLAG_ID,{sembrado:true,cantidad:nuevos.length,fecha:new Date().toISOString()}); }catch(e){} }
     return true;
   }catch(e){ console.warn("sembrarC2",e); return false; }
+}
+
+/* Secciones de la 2da convocatoria: corre UNA sola vez sobre el padrón que YA
+   estaba cargado (sin sección) y le pone la sección designada según el DNI.
+   Solo toca a los que están «Sin asignar»: nunca pisa una sección puesta a mano. */
+const C2_SEC_FLAG_ID="rend_c2_secciones_done";
+const C2_SEC_FLAG_KEY="rendv3_c2_secciones";
+async function aplicarSeccionesC2(){
+  try{
+    if(sb){
+      try{
+        const r=await sb.from("app_data").select("id").eq("id",C2_SEC_FLAG_ID).maybeSingle();
+        if(r && r.data) return false;                      // ya se aplicó alguna vez
+      }catch(e){}
+    } else if(localStorage.getItem(C2_SEC_FLAG_KEY)) return false;
+    const mapa=new Map(SEED_C2.filter(o=>o.s).map(o=>[String(o.d),String(o.s)]));
+    const tocados=[];
+    DATA.forEach(a=>{
+      if(convDe(a)!==2) return;
+      if(String(a.seccion||"").trim()!=="") return;
+      const s=mapa.get(String(a.dni||"").trim());
+      if(s){ a.seccion=s; tocados.push(a); }
+    });
+    try{ localStorage.setItem(C2_SEC_FLAG_KEY,"1"); }catch(e){}
+    if(tocados.length){
+      DATA=ordenarAspirantes(DATA);
+      saveData();
+      await pushNuevos(tocados);
+    }
+    if(sb){ try{ await upsertRow(C2_SEC_FLAG_ID,{aplicado:true,cantidad:tocados.length,fecha:new Date().toISOString()}); }catch(e){} }
+    return tocados.length>0;
+  }catch(e){ console.warn("aplicarSeccionesC2",e); return false; }
+}
+/* siembra + secciones, en ese orden */
+async function sincronizarC2(){
+  const sembrado=await sembrarC2();
+  const asignado=await aplicarSeccionesC2();
+  return sembrado||asignado;
 }
 
 /* ===================== ASIGNAR SECCIONES ===================== */
