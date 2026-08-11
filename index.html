@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Rendimiento Académico · Aspirantes 2026</title>
+<meta name="app-version" content="3.5">
 <meta name="theme-color" content="#9e1b2c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -716,7 +717,7 @@ footer{text-align:center;padding:22px;font-size:11px;color:var(--muted);letter-s
 </div>
 </div>
 
-<footer>Rendimiento Académico · Escuela de Policía · DCFyCCCO Neuquén · <b>MLF&amp;EV</b></footer>
+<footer>Rendimiento Académico · Escuela de Policía · DCFyCCCO Neuquén · <b>MLF&amp;EV</b> · v3.5</footer>
 </div>
 
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
@@ -955,6 +956,9 @@ function saveAmo(){ try{localStorage.setItem(AMO_KEY,JSON.stringify(AMO));}catch
    Los aspirantes de la 2da llevan id "c2_<dni>" para que jamás pisen
    una fila de la 1ra en la nube, aunque se repita un DNI.            */
 const CONV_KEY="rendv3_conv";
+/* La 2da Convocatoria tiene exactamente 5 secciones. Cualquier otro valor es
+   un dato mal cargado y no debe aparecer en filtros ni en selectores.      */
+const SEC_C2_VALIDAS=["1","2","3","4","5"];
 const CONV_META={1:{label:"1ra Convocatoria",short:"1ra",slug:"1ra_conv"},
                  2:{label:"2da Convocatoria",short:"2da",slug:"2da_conv"}};
 let CONV=(function(){ try{ return parseInt(localStorage.getItem(CONV_KEY))===2?2:1; }catch(e){ return 1; } })();
@@ -965,8 +969,9 @@ function CONV_LABEL(){ return CONV_META[CONV].label; }
 function CONV_SLUG(){ return CONV_META[CONV].slug; }
 function convIdFor(dni){ return (CONV===2?"c2_":"")+(dni||("id_"+Date.now()+"_"+Math.random().toString(36).slice(2,7))); }
 function seccionesDe(conv){
-  return [...new Set(DATA.filter(a=>convDe(a)===conv).map(a=>String(a.seccion)))].filter(x=>x&&x!=="undefined")
-    .sort((x,y)=>(parseInt(x)||0)-(parseInt(y)||0));
+  let s=[...new Set(DATA.filter(a=>convDe(a)===conv).map(a=>String(a.seccion)))].filter(x=>x&&x!=="undefined");
+  if(conv===2) s=s.filter(x=>SEC_C2_VALIDAS.indexOf(x)>=0);   // la 2da solo tiene 1 a 5
+  return s.sort((x,y)=>(parseInt(x)||0)-(parseInt(y)||0));
 }
 function seccionesAct(){ const s=seccionesDe(CONV); return s.length?s:["1","2","3","4","5"]; }
 function secOptionsHTML(sel){
@@ -1581,8 +1586,10 @@ const SEED_C2=[
 {n:"AMAYA MARTIN FABRICIO",d:"45767253",s:"5"},
 {n:"ANDREIS COSCARARTE YASMINA AGUSTINA",d:"43422399",s:"5"},
 {n:"ANDRINI LAURA AYELEN",d:"46252741",s:"1"},
-{n:"ANTIÑIR JUAN FRANCO",d:"42710127",s:"2"},
+{n:"ANTIPAN GUADALUPE MAGALI",d:"45733548",s:"1"},
 {n:"ANTIQUEO LUCIANO THAIEL",d:"43372613",s:"3"},
+{n:"ANTIÑIR JUAN FRANCO",d:"42710127",s:"2"},
+{n:"ARAVENA TATIANA EVELYN",d:"43759777",s:"2"},
 {n:"AVALOS JONATHAN ARIEL",d:"43400785",s:"4"},
 {n:"AVILA ALEXIS GABRIEL",d:"45142102",s:"5"},
 {n:"AVILES KIARA AYELEN",d:"47148540",s:"5"},
@@ -1598,8 +1605,8 @@ const SEED_C2=[
 {n:"BUSTOS FRANK WILLIAMS",d:"47590085",s:"5"},
 {n:"BUYONES PEDRO NICOLAS",d:"40442712",s:"1"},
 {n:"CAITRUZ MARINA ANTONELLA",d:"45602662",s:"1"},
-{n:"CAMPOS JUAN EMANUEL",d:"41706923"},
 {n:"CANTILLANA LEONEL IVAN",d:"42105434",s:"2"},
+{n:"CARDOZO JOAQUIN MAXIMILIANO",d:"48946893",s:"4"},
 {n:"CARRIZO DALMA ELIZABETH",d:"40293809",s:"2"},
 {n:"CASTILLO AILEN GLADYS MARIA",d:"45883259",s:"3"},
 {n:"CASTILLO JUAN GABRIEL",d:"48748501",s:"3"},
@@ -1608,9 +1615,11 @@ const SEED_C2=[
 {n:"CATILAO NAIR YOHANA JUDIT",d:"42910403",s:"5"},
 {n:"CAVIERES FERNANDO NICOLAS",d:"42806832",s:"5"},
 {n:"CAZON ROCIO DEL ROSARIO",d:"42034551",s:"1"},
+{n:"CAÑETE SOLANGE KATHERINA",d:"47467073",s:"3"},
 {n:"CENTURION MARCO GASTON",d:"41840556",s:"1"},
 {n:"CHEUQUEL FACUNDO ERNESTO",d:"45733125",s:"2"},
 {n:"CIFUENTES JOEL",d:"46724103",s:"2"},
+{n:"CIFUENTES TANIA EMELI",d:"43130979",s:"5"},
 {n:"COLIHUINCA DAIANA",d:"43947396",s:"3"},
 {n:"COLMAN TILLERIA MELISA CAROLINA",d:"41539434",s:"3"},
 {n:"COLQUE GABRIEL HERNAN",d:"45275258",s:"4"},
@@ -1622,8 +1631,10 @@ const SEED_C2=[
 {n:"DETZEL MENDEZ ZOE LUJAN",d:"47929697",s:"2"},
 {n:"DUARTE LAUTARO NICOLAS",d:"48266970",s:"2"},
 {n:"DUMIGUAL ROCIO CELESTE",d:"44481318",s:"3"},
+{n:"ECKERT MATIAS",d:"43071138",s:"1"},
 {n:"ELIAS FABRIZIO MARTIN",d:"41362076",s:"3"},
 {n:"ENCINA DANIELA AYELEN",d:"44014330",s:"4"},
+{n:"ESCOBAR KARINA ELIZABETH",d:"40067528",s:"2"},
 {n:"ESPINOZA GILDA NATALIA",d:"42317871",s:"4"},
 {n:"ESPINOZA YAMIL NAZARENO",d:"48207485",s:"5"},
 {n:"FECHA FERNANDO RAFAEL",d:"45332235",s:"5"},
@@ -1640,7 +1651,9 @@ const SEED_C2=[
 {n:"GONZALEZ MARTA YANINA",d:"43168714",s:"1"},
 {n:"GONZALEZ REGUERA CAMILA AILEN",d:"41438987",s:"1"},
 {n:"GONZALEZ ROMINA ABIGAIL",d:"47590985",s:"2"},
+{n:"GUERRERO GUSTAVO FABIAN",d:"43215758",s:"3"},
 {n:"GUYAQUIMIL MERCEDES ROCIO",d:"44237574",s:"2"},
+{n:"HUALA AXEL NEHEMIAS ABIMELEC",d:"48749202",s:"4"},
 {n:"HUEMIL ULISE ENRIQUE ELEAZAR",d:"41347385",s:"3"},
 {n:"HUILLICAL MILAGROS ANTONELLA",d:"44909726",s:"3"},
 {n:"IRAL EDGARDO MISAEL",d:"47284983",s:"4"},
@@ -1654,6 +1667,7 @@ const SEED_C2=[
 {n:"LEZCANO IARA DAFNE",d:"43131650",s:"3"},
 {n:"LIZAMA ALESSANDRO BENJAMIN",d:"43130935",s:"3"},
 {n:"LUCERO LUZ BELEN",d:"43759920",s:"4"},
+{n:"MADARIAGA THOMAS ANTONIO",d:"48015722",s:"5"},
 {n:"MANSILLA MAYCO ERNESTO",d:"41347366",s:"4"},
 {n:"MARDONES CARRASCO YAMNA ABIGAIL",d:"45979934",s:"5"},
 {n:"MARIÑANCO HERNAN FERNANDO",d:"44909259",s:"5"},
@@ -1667,13 +1681,16 @@ const SEED_C2=[
 {n:"MORALES PAULA MAISA",d:"45471048",s:"4"},
 {n:"MORENO ORTEGA MICAELA",d:"46612501",s:"5"},
 {n:"MOSCOSO ANA BELEN",d:"42806040",s:"5"},
+{n:"MUÑOZ ABRIL CELESTE",d:"43759771",s:"1"},
 {n:"MUÑOZ BRIAN ALEJANDRO",d:"41124154",s:"1"},
+{n:"MUÑOZ KEVIN TAHIEL",d:"56006691",s:"2"},
 {n:"NAMUNCURA FACUNDO ISAIAS",d:"43703040",s:"1"},
 {n:"NUÑEZ, AGUSTIN",d:"42702958",s:"2"},
-{n:"ÑANCO CAMILA AILIN",d:"40182974",s:"2"},
-{n:"ÑEHUEN MIGUEL ANGEL",d:"40440144",s:"3"},
 {n:"OLAVE JOSÉ ALEJANDRO",d:"48731233",s:"3"},
 {n:"OLIMA MARIA DE LOS MILAGROS",d:"42815849",s:"4"},
+{n:"ORELLANA ROSSETTI FEDERICO ALEJANDRO",d:"43834764",s:"4"},
+{n:"OSRE KEILA",d:"44129756",s:"5"},
+{n:"PACHECO FACUNDO BENJAMIN",d:"48673412",s:"1"},
 {n:"PALACIOS AGUSTIN EXEQUIEL",d:"42518441",s:"4"},
 {n:"PALAVECINO SANTIAGO JOAQUIN",d:"44825898",s:"5"},
 {n:"PAREDEZ MARCOS ANTONIO",d:"41606863",s:"5"},
@@ -1683,12 +1700,15 @@ const SEED_C2=[
 {n:"PEREZ VERONICA MARISOL",d:"41837874",s:"2"},
 {n:"PILQUIMAN FRANCO JOSE",d:"41232139",s:"3"},
 {n:"PINO SALDIA ERIKA NICOLE",d:"41911881",s:"3"},
+{n:"QUIPILDOR MIRIAM ISABEL",d:"41400502",s:"2"},
 {n:"RAIGUAN SAMUEL DELMIRO",d:"41050110",s:"4"},
 {n:"RAMIREZ EMILIANO BENJAMIN",d:"47661695",s:"4"},
 {n:"RAMIREZ MATIAS NICOLAS",d:"40912160",s:"5"},
 {n:"RAMOS AGUSTINA JANET",d:"45362124",s:"5"},
 {n:"RINGLER VALENTINA DAFNE",d:"48488866",s:"1"},
+{n:"RIQUELME DILAN DANIEL ALEXIS",d:"47590474",s:"3"},
 {n:"RIVAS ROCIO LUJAN",d:"44684980",s:"1"},
+{n:"RIVERO LEONARDO NAHUEL",d:"47471832",s:"4"},
 {n:"ROBLES VALLEJOS NOELIA MICAELA",d:"44325139",s:"2"},
 {n:"RODRIGUEZ CAMILA AGUSTINA",d:"48207476",s:"2"},
 {n:"ROJAS CLARISA",d:"47438715",s:"3"},
@@ -1699,6 +1719,7 @@ const SEED_C2=[
 {n:"RUBILAR TAPIA LAURA AZUCENA",d:"45028218",s:"5"},
 {n:"RUIZ TATIANA NATALI DEL VALLE",d:"43639901",s:"1"},
 {n:"RUSSO FEDERICO AGUSTIN",d:"41645139",s:"1"},
+{n:"SALAZAR MARILIN ESTEFANIA",d:"43131672",s:"5"},
 {n:"SALVO IVAN MARIANO",d:"44684957",s:"2"},
 {n:"SANCHEZ NATALIA DANIELA",d:"45509724",s:"2"},
 {n:"SANDOVAL BRANDON AGUSTIN",d:"45733557",s:"3"},
@@ -1711,6 +1732,7 @@ const SEED_C2=[
 {n:"SOTO LUCAS GABRIEL",d:"47211758",s:"1"},
 {n:"SUBELZA FEDERICO DANILO",d:"45182847",s:"2"},
 {n:"TORRES CORONADO AGUSTIN ALESANDRO",d:"42652440",s:"2"},
+{n:"TORRES LARA CONSTANZA PRISCILA",d:"45852765",s:"5"},
 {n:"TRONCOSO DIEGO SEBASTIAN",d:"41050056",s:"3"},
 {n:"URIBE ERICK EMILIANO",d:"43156041",s:"3"},
 {n:"URRUTIA MAIA CLARIBEL",d:"40293782",s:"4"},
@@ -1725,7 +1747,10 @@ const SEED_C2=[
 {n:"WEISS MAURICIO DAMIAN",d:"44278183",s:"3"},
 {n:"YAÑEZ LEONEL FERNANDO",d:"42968654",s:"4"},
 {n:"ZAMORANO ALVAREZ LUZ QUIMEY",d:"46069096",s:"4"},
-{n:"ZUÑIGA GONZALEZ ENZO EXEQUIEL",d:"45142517",s:"5"}
+{n:"ZUÑIGA GONZALEZ ENZO EXEQUIEL",d:"45142517",s:"5"},
+{n:"ÑANCO CAMILA AILIN",d:"40182974",s:"2"},
+{n:"ÑANCO JULIO AGUSTIN",d:"42653501",s:"3"},
+{n:"ÑEHUEN MIGUEL ANGEL",d:"40440144",s:"3"}
 ];
 function aspiranteC2(o){
   const b=blankAspirante();
@@ -1782,19 +1807,116 @@ async function aplicarSeccionesC2(){
     return tocados.length>0;
   }catch(e){ console.warn("aplicarSeccionesC2",e); return false; }
 }
-/* siembra + secciones, en ese orden */
+
+/* ===================== PADRÓN OFICIAL · CORRECCIÓN DE SECCIONES ===========
+   El padrón oficial (SEED_C2) es la única fuente de verdad de la sección de
+   cada aspirante de la 2da Convocatoria: 176 aspirantes, secciones 1 a 5.
+
+   Para qué sirve esto: una carga masiva puede haber tomado la columna «N°»
+   (número de orden, 1 a 36) como si fuera la sección, y así aparecieron
+   secciones 6, 7 … 33 que no existen. Estas funciones vuelven a poner a cada
+   aspirante en la sección que le corresponde según su DNI.
+
+   Nunca toca la 1ra Convocatoria.                                          */
+const C2_PADRON_FLAG_ID="rend_c2_padron_ago2026";
+const C2_PADRON_FLAG_KEY="rendv3_c2_padron_ago2026";
+
+function normNom(s){
+  return String(s||"").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/[^A-Z0-9 ]/g," ").replace(/\s+/g," ").trim();
+}
+function secValidaC2(v){ return SEC_C2_VALIDAS.indexOf(String(v||"").trim())>=0; }
+function padronC2(){
+  const porDni=new Map(), porNom=new Map();
+  SEED_C2.forEach(o=>{
+    if(!o.s) return;
+    porDni.set(String(o.d).trim(), String(o.s));
+    porNom.set(normNom(o.n), String(o.s));
+  });
+  return {porDni:porDni, porNom:porNom};
+}
+/* forzar=true  -> pone la sección oficial aunque la actual sea 1..5 (corrección total)
+   forzar=false -> solo arregla lo que quedó fuera de 1..5 (red de seguridad) */
+function corregirSeccionesC2(forzar){
+  const p=padronC2(), tocados=[];
+  DATA.forEach(a=>{
+    if(convDe(a)!==2) return;
+    const actual=String(a.seccion||"").trim();
+    const oficial=p.porDni.get(String(a.dni||"").trim()) || p.porNom.get(normNom(a.nombre));
+    if(oficial){
+      if(actual!==oficial && (forzar || !secValidaC2(actual))){ a.seccion=oficial; tocados.push(a); }
+    } else if(actual!=="" && !secValidaC2(actual)){
+      a.seccion=""; tocados.push(a);   // no está en el padrón y tenía una sección inexistente
+    }
+  });
+  return tocados;
+}
+function altasFaltantesC2(){
+  const yaEstan=new Set(DATA.filter(a=>convDe(a)===2).map(a=>String(a.dni||"").trim()));
+  const nuevos=SEED_C2.filter(o=>!yaEstan.has(String(o.d).trim())).map(aspiranteC2);
+  if(nuevos.length) DATA=DATA.concat(nuevos);
+  return nuevos;
+}
+function sinPadronC2(){
+  const p=padronC2();
+  return DATA.filter(a=>convDe(a)===2 &&
+    !p.porDni.get(String(a.dni||"").trim()) && !p.porNom.get(normNom(a.nombre)));
+}
+async function repararPadronC2(){
+  try{
+    let yaCorrido=false;
+    if(sb){
+      try{
+        const r=await sb.from("app_data").select("id").eq("id",C2_PADRON_FLAG_ID).maybeSingle();
+        if(r && r.data) yaCorrido=true;
+      }catch(e){}
+    } else if(localStorage.getItem(C2_PADRON_FLAG_KEY)) yaCorrido=true;
+
+    const nuevos  = yaCorrido ? [] : altasFaltantesC2();
+    const tocados = corregirSeccionesC2(!yaCorrido);
+    const cambios = nuevos.concat(tocados.filter(a=>nuevos.indexOf(a)<0));
+    try{ localStorage.setItem(C2_PADRON_FLAG_KEY,"1"); }catch(e){}
+    if(cambios.length){
+      DATA=ordenarAspirantes(DATA);
+      saveData();
+      await pushNuevos(cambios);
+    }
+    if(sb && !yaCorrido){
+      try{ await upsertRow(C2_PADRON_FLAG_ID,{aplicado:true,altas:nuevos.length,corregidos:tocados.length,fecha:new Date().toISOString()}); }catch(e){}
+    }
+    return cambios.length;
+  }catch(e){ console.warn("repararPadronC2",e); return 0; }
+}
+/* Botón manual: se puede correr cuando haga falta (por ejemplo despues de una
+   carga masiva que dejó secciones raras). */
+async function corregirSeccionesManual(){
+  if(CONV!==2){ toast("Esta corrección es solo para la 2da Convocatoria"); return; }
+  const tocados=corregirSeccionesC2(true);
+  if(!tocados.length){ toast("Las secciones ya coinciden con el padrón oficial ✓"); return; }
+  DATA=ordenarAspirantes(DATA); saveData();
+  await pushNuevos(tocados);
+  ASIG_TMP={}; ACT().forEach(a=>ASIG_TMP[a.id]=String(a.seccion||""));
+  fillSecSelects(); updateConvUI(); renderKpis(); render();
+  try{ renderAsigList(); }catch(e){}
+  refreshMeritoIfOpen(); refreshPodioIfOpen(); refreshObsIfOpen(); refreshInst2IfOpen(); refreshExtIfOpen();
+  toast(tocados.length+" aspirante(s) reubicados según el padrón ✓");
+}
+
+/* siembra + secciones + corrección contra el padrón oficial, en ese orden */
 async function sincronizarC2(){
   const sembrado=await sembrarC2();
   const asignado=await aplicarSeccionesC2();
-  return sembrado||asignado;
+  const reparado=await repararPadronC2();
+  return sembrado||asignado||(reparado>0);
 }
+
 
 /* ===================== ASIGNAR SECCIONES ===================== */
 let ASIG_TMP={};
 function sinSeccion(conv){ return DATA.filter(a=>convDe(a)===(conv||CONV) && String(a.seccion||"").trim()===""); }
 function secsPosibles(){
   const base=["1","2","3","4","5"];
-  seccionesDe(CONV).forEach(x=>{ if(x && base.indexOf(x)<0) base.push(x); });
+  if(CONV!==2) seccionesDe(CONV).forEach(x=>{ if(x && base.indexOf(x)<0) base.push(x); });
   return base.sort((x,y)=>(parseInt(x)||0)-(parseInt(y)||0));
 }
 function openAsignarSec(){
@@ -1803,7 +1925,8 @@ function openAsignarSec(){
   document.getElementById("modal").innerHTML=`
     <div class="mhead"><button class="close" onclick="closeModal()">×</button>
       <h2>Asignar secciones · ${CONV_LABEL()}</h2>
-      <div class="meta">Elegí la sección de cada aspirante. Lo que dejes en «Sin asignar» queda pendiente.</div></div>
+      <div class="meta">Elegí la sección de cada aspirante. Lo que dejes en «Sin asignar» queda pendiente.</div>
+      ${CONV===2?`<div style="margin-top:10px"><button class="btn btn-ghost" onclick="corregirSeccionesManual()">🛠 Corregir secciones desde el padrón oficial</button></div>`:""}</div>
     <div class="mbody">
       <div class="asig-tools">
         <div><label style="display:block;font-size:10.5px;letter-spacing:1px;text-transform:uppercase;font-weight:700;color:var(--muted);margin-bottom:5px">Buscar</label>
@@ -1941,30 +2064,71 @@ function importArchivo(ev){
   };
   rd.readAsArrayBuffer(f);
 }
+/* Lectura del listado pegado o del archivo .xlsx/.csv.
+   Ojo con un detalle que dio problemas: los padrones oficiales vienen con la
+   columna «N°» (número de orden, 1 a 36) ANTES de la sección. Si se toma el
+   primer número corto de la fila como sección, todos quedan mal ubicados y
+   aparecen secciones que no existen. Por eso:
+     1º) si hay fila de encabezado, se usan las columnas que ella declara;
+     2º) si no hay encabezado, la sección es el ÚLTIMO número corto de la fila,
+         no el primero.                                                       */
 function parseAspLines(txt){
-  const filas=[];
-  (txt||"").split(/\r?\n/).forEach(ln=>{
-    const raw=(ln||"").trim(); if(!raw)return;
-    let campos=raw.split(/\t|;|\|/).map(x=>x.trim()).filter(x=>x!=="");
-    if(campos.length<2) campos=raw.split(/\s{2,}/).map(x=>x.trim()).filter(Boolean);
-    if(campos.length<2) campos=[raw];
-    let dni="", sec="", nom=[];
-    campos.forEach(c=>{
-      const limpio=c.replace(/[.\s]/g,"");
-      if(/^\d+$/.test(limpio)){
-        if(limpio.length>=7){ if(!dni) dni=limpio; }
-        else if(limpio.length<=2){ if(!sec) sec=String(parseInt(limpio,10)); }
-      } else nom.push(c);
+  const lineas=(txt||"").split(/\r?\n/).map(l=>(l||"").trim()).filter(l=>l!=="");
+  if(!lineas.length) return [];
+  const partir=(ln)=>{
+    let campos=ln.split(/\t|;|\|/).map(x=>x.trim());
+    if(campos.filter(x=>x!=="").length<2) campos=ln.split(/\s{2,}/).map(x=>x.trim());
+    return campos;
+  };
+  let idxSec=-1, idxNom=-1, idxDni=-1, desde=0;
+  const cab=partir(lineas[0]).map(x=>String(x).toLowerCase());
+  const esCab=cab.some(c=>/(secc|dni|documento|apellido|nombre|aspirante|orden|^n°|^nro)/.test(c)) &&
+              !cab.some(c=>/^\d{7,}$/.test(c.replace(/[.\s]/g,"")));
+  if(esCab){
+    cab.forEach((c,i)=>{
+      if(idxSec<0 && /secc/.test(c)) idxSec=i;
+      if(idxDni<0 && /(dni|documento)/.test(c)) idxDni=i;
+      if(idxNom<0 && /(apellido|nombre|aspirante)/.test(c)) idxNom=i;
     });
+    desde=1;
+  }
+  const conCab=(idxSec>=0 || idxDni>=0 || idxNom>=0);
+  const filas=[];
+  for(let k=desde;k<lineas.length;k++){
+    const raw=lineas[k];
+    const campos=partir(raw);
+    let dni="", sec="", nom=[];
+    if(conCab){
+      const g=(i)=>(i>=0 && campos[i]!=null)?String(campos[i]).trim():"";
+      const d=g(idxDni).replace(/[.\s]/g,"");
+      const s=g(idxSec).replace(/[.\s]/g,"");
+      const n=g(idxNom);
+      if(/^\d{7,}$/.test(d)) dni=d;
+      if(/^\d{1,2}$/.test(s)) sec=String(parseInt(s,10));
+      if(n) nom.push(n);
+    }
+    if(!dni || !nom.length){
+      const chicos=[], textos=[];
+      campos.forEach(c=>{
+        const limpio=String(c).replace(/[.\s]/g,"");
+        if(limpio==="") return;
+        if(/^\d+$/.test(limpio)){
+          if(limpio.length>=7){ if(!dni) dni=limpio; }
+          else if(limpio.length<=2) chicos.push(String(parseInt(limpio,10)));
+        } else textos.push(String(c).trim());
+      });
+      if(!sec && chicos.length) sec=chicos[chicos.length-1];   // la sección va al final, el N° de orden al principio
+      if(!nom.length) nom=textos;
+    }
     if(!dni){ const m=raw.match(/(\d[\d.]{6,})/); if(m) dni=m[1].replace(/\./g,""); }
     let nombre=nom.join(" ").replace(/\s+/g," ").trim();
-    if(!nombre) nombre=raw.replace(/\d[\d.]{6,}/g,"").replace(/[\t;|]/g," ").replace(/\s+/g," ").trim();
+    if(!nombre) nombre=raw.replace(/\d[\d.]{6,}/g," ").replace(/[\t;|]/g," ").replace(/\s+/g," ").trim();
     nombre=nombre.replace(/\d[\d.]{6,}/g," ").replace(/\s+/g," ").trim();
-    nombre=nombre.replace(/^[\-–.,\s]+|[\-–.,\s]+$/g,"");
-    if(!nombre) return;
-    if(!dni && /^(secci|sección|nombre|apellido|dni|orden|n°|nro|aspirante)/i.test(nombre)) return; // encabezado
+    nombre=nombre.replace(/^\d{1,3}\s+/,"").replace(/^[\-–.,\s]+|[\-–.,\s]+$/g,"");
+    if(!nombre) continue;
+    if(!dni && /^(secci|sección|seccion|nombre|apellido|dni|orden|n°|nro|aspirante)/i.test(nombre)) continue;
     filas.push({nombre:nombre.toUpperCase(), dni:dni, seccion:sec});
-  });
+  }
   return filas;
 }
 function previewImport(){
@@ -1981,11 +2145,13 @@ function previewImport(){
   });
   IMP_PARSE={filas:filas,dups:dups};
   const nuevos=filas.filter(f=>!f.dupe).length;
+  const fuera=filas.filter(f=>CONV===2 && f.seccion && SEC_C2_VALIDAS.indexOf(String(f.seccion))<0).length;
   const out=document.getElementById("imp-out");
   if(!filas.length){ out.innerHTML=`<div class="imp-res" style="color:var(--crit)">No se detectó ninguna fila válida.</div>`;
     document.getElementById("imp-ok").disabled=true; return; }
   out.innerHTML=`
     <div class="imp-res">Se detectaron <b>${filas.length}</b> filas · <b>${nuevos}</b> se van a cargar${dups?` · <b>${dups}</b> ya existen (se omiten)`:""}.</div>
+    ${fuera?`<div class="imp-res" style="color:var(--crit)">⚠ <b>${fuera}</b> fila(s) traen una sección que no existe en la 2da Convocatoria (solo hay 1 a 5). Revisá que no se esté leyendo la columna «N°» en lugar de «Sección»: esas filas van a quedar como <b>Sin asignar</b>.</div>`:""}
     <div class="imp-prev"><table><thead><tr><th>#</th><th>Sección</th><th>Nombre</th><th>DNI</th></tr></thead><tbody>
     ${filas.map((f,i)=>`<tr class="${f.dupe?'dupe':''}"><td>${i+1}</td><td>${escapeHtml(f.seccion)}</td><td>${escapeHtml(f.nombre)}</td><td class="mono">${escapeHtml(f.dni||"—")}</td></tr>`).join("")}
     </tbody></table></div>`;
@@ -2014,7 +2180,11 @@ function confirmImport(){
   const nuevos=filas.map(f=>{
     const b=blankAspirante();
     b.id=convIdFor(f.dni); b.conv=CONV; b.dni=f.dni||"";
-    b.nombre=f.nombre; b.seccion=String(f.seccion||"1");
+    b.nombre=f.nombre;
+    let s=String(f.seccion||"");
+    if(CONV===2) s=SEC_C2_VALIDAS.indexOf(s)>=0?s:"";   // sección inexistente => queda «Sin asignar»
+    else if(!s) s="1";
+    b.seccion=s;
     return b;
   });
   DATA=ordenarAspirantes(DATA.concat(nuevos));
